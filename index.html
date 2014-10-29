@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="css-parser.js"></script>
+  <script src="matches.polyfill.js"></script>
+  <script src="shadowCss.polyfill.js"></script>
+  <link rel="stylesheet" href="sample.css">
+  <script>
+    window.onload = function(){
+      registerShadow('x-foo');
+    };
+  </script>
+  <style>
+    x-foo::shadow em {text-shadow: 0 0 3px #ff0; }
+  </style>
+</head>
+<body>
+<p> this is <em>cool</em></p>
+<x-foo class="talk">Bloooooo <em>mooon</em></x-foo>
+</body>
+</html>
