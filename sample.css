@@ -5,6 +5,7 @@ x-foo em { font-weight: bold; }
 x-foo.talk em { color: #428bca; }
 
 em:not([data-uniq-id*="123"]) { color: blue; }
+b { color: green; }
 
 x-foo::shadow em { text-decoration: underline; }
 x-foo.talk::shadow em {border-top: 3px solid #428bca; }

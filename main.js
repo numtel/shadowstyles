@@ -1,1 +1,0 @@
-window.css = require('css');

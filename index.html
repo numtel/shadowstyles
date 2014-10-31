@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <script src="x-tag-components.min.js"></script>
   <script src="css-parser.js"></script>
   <script src="matches.polyfill.js"></script>
   <script src="shadowCss.polyfill.js"></script>
   <link rel="stylesheet" href="sample.css">
   <script>
     window.onload = function(){
-      registerShadow('x-foo');
+      document.isolateShadowStyles('x-foo');
     };
   </script>
   <style>
@@ -15,6 +16,9 @@
   </style>
 </head>
 <body>
+<button onclick="document.querySelector('x-foo em').innerHTML+=' <b>hello</b>';">
+  Click me! (No shadow dom isolation...)
+</button>
 <p> this is <em>cool</em></p>
 <x-foo class="talk">Bloooooo <em>mooon</em></x-foo>
 </body>

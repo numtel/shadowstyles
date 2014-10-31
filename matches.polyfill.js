@@ -1,7 +1,7 @@
+// Saved from https://developer.mozilla.org/en-US/docs/Web/API/Element.matches
 if(!Element.prototype.matches){
   Element.prototype.matches = function (selector) {
     var element = this;
-    console.log(selector);
     var matches = (element.document || element.ownerDocument).querySelectorAll(selector);
     var i = 0;
     
