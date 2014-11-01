@@ -29,7 +29,16 @@
       if(mutation.type === 'attributes' && mutation.attributeName !== BUFFER_ATTR){
         updateShadowCss([mutation.target], parsedSheets);
       }else if(mutation.type === 'childList'){
-        updateShadowCss(mutation.addedNodes, parsedSheets);
+        var sorted = [];
+        Array.prototype.forEach.call(mutation.addedNodes, function(el){
+          var removed = Array.prototype.indexOf.call(mutation.removedNodes, el);
+          if(el.nodeName !== '#text' && !el.getAttribute(BUFFER_ATTR)){
+            sorted.push(el);
+          };
+        });
+        if(sorted.length > 0){
+          updateShadowCss(sorted, parsedSheets);
+        };
       };
     });
   });
@@ -42,7 +51,13 @@
   var updateShadowCss = function(children, parsedCss){
     var output = '';
     parsedCss.forEach(function(sheetMeta){
-      var stylesheet = css.parse(sheetMeta.data);
+      var stylesheet;
+      if(sheetMeta.parsedData){
+        stylesheet = JSON.parse(sheetMeta.parsedData);
+      }else{
+        stylesheet = css.parse(sheetMeta.data);
+        sheetMeta.parsedData = JSON.stringify(stylesheet);
+      };
       stylesheet.stylesheet.rules.forEach(function(rule, ruleIndex){
         if(rule.type === 'rule'){
           rule.selectors.forEach(function(selector, selectorIndex){
