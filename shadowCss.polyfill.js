@@ -15,10 +15,12 @@
     if(parsedSheets === undefined){
       parsedSheets = 'loading';
       loadAllStyleSheets(function(data){
+        // Actually a synchronous callback
         parsedSheets = data;
         updateShadowCss(shadowChildren, parsedSheets);
       });
     }else if(parsedSheets !== 'loading'){
+      // Should never see parsedSheets as 'loading'
       updateShadowCss(shadowChildren, parsedSheets);
     };
   };
@@ -72,6 +74,7 @@
                                   rule.position.start.column;
               var replacedIndex = sheetMeta.replacedSelectors.indexOf(selectorKey);
               if(replacedIndex > -1){
+                // Selector already negated, update output
                 var selectorId = sheetMeta.selectorIds[replacedIndex];
                 selector = selector +
                   ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
@@ -81,29 +84,35 @@
               // Negate selector for all Shadow DOM
               Array.prototype.forEach.call(children, function(child){
                 observer.observe(child, {attributes: true, childList: true});
+                var attrVal = child.getAttribute(BUFFER_ATTR);
+                if(!attrVal){
+                  // Initialize attribute
+                  attrVal = 'z'; // Any string will do
+                  child.setAttribute(BUFFER_ATTR, attrVal);
+                };
                 if(child.matches && child.matches(selector)){
                   var selectorId;
                   if(replacedIndex > -1){
+                    // selector already negated
                     selectorId = sheetMeta.selectorIds[replacedIndex];
                   }else if(selector.indexOf(':not([' + BUFFER_ATTR + '*=') === -1){
-                    // generate selector unique id if doesnt exist
+                    // not yet negated, generate selector unique id
                     selectorId = randomString(10);
                     selector = selector +
                       ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
                     stylesheet.stylesheet.rules[ruleIndex].
                       selectors[selectorIndex] = selector;
+                    // add record to meta object
                     sheetMeta.replacedSelectors.push(selectorKey);
                     sheetMeta.selectorIds.push(selectorId);
                   }else{
-                    // selectorId is at end, capped by '"])'
+                    // negated, selectorId is at end, capped by '"])'
                     selectorId = selector.substr(-13, 10);
                   };
-                  // add unique id to child if not included
-                  var attrVal = child.getAttribute(BUFFER_ATTR);
-                  if(!attrVal){
-                    child.setAttribute(BUFFER_ATTR, selectorId);
-                  }else if(attrVal.indexOf(selectorId) === -1){
-                    child.setAttribute(BUFFER_ATTR, attrVal + selectorId);
+                  if(attrVal.indexOf(selectorId) === -1){
+                    // add unique id to child if not included
+                    attrVal += selectorId;
+                    child.setAttribute(BUFFER_ATTR, attrVal);
                   };
                 };
               });
