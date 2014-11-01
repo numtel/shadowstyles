@@ -7,14 +7,11 @@
   var parsedSheets;
   // Current inserted style element
   var processedStyleEl;
-  // List of elements currently living in the shadows
-  var shadowChildren = [];
-
 
   // Main public method
   // @param {string} nodeName - Element type to isolate styles of child DOM
   document.isolateShadowStyles = function(nodeName){
-    shadowChildren = shadowChildren.concat(findChildren(nodeName));
+    var shadowChildren = findChildren(nodeName);
     if(parsedSheets === undefined){
       parsedSheets = 'loading';
       loadAllStyleSheets(function(data){
@@ -28,21 +25,11 @@
 
   // Watch for changes to shadowed elements
   var observer = new MutationObserver(function(mutations){
-    //updateShadowStyles();
     mutations.forEach(function(mutation){
       if(mutation.type === 'attributes' && mutation.attributeName !== BUFFER_ATTR){
-        updateShadowCss(shadowChildren, parsedSheets);
+        updateShadowCss([mutation.target], parsedSheets);
       }else if(mutation.type === 'childList'){
-        Array.prototype.forEach.call(mutation.addedNodes, function(added){
-          shadowChildren.push(added);
-        });
-        Array.prototype.forEach.call(mutation.removedNodes, function(removed){
-          var index = shadowChildren.indexOf(removed);
-          if(index > -1){
-            shadowChildren.splice(index, 1);
-          };
-        });
-        updateShadowCss(shadowChildren, parsedSheets);
+        updateShadowCss(mutation.addedNodes, parsedSheets);
       };
     });
   });
@@ -53,9 +40,6 @@
   //                               shadow
   // @param {[obj]}    parsedCss - Output from loadAllStyleSheets()
   var updateShadowCss = function(children, parsedCss){
-    Array.prototype.forEach.call(children, function(child){
-      child.removeAttribute && child.removeAttribute(BUFFER_ATTR);
-    });
     var output = '';
     parsedCss.forEach(function(sheetMeta){
       var stylesheet = css.parse(sheetMeta.data);
@@ -68,18 +52,33 @@
               stylesheet.stylesheet.rules[ruleIndex].
                 selectors[selectorIndex] = selector;
             }else{
+              var selectorKey = selector + '@' +
+                                  rule.position.start.line + ':' +
+                                  rule.position.start.column;
+              var replacedIndex = sheetMeta.replacedSelectors.indexOf(selectorKey);
+              if(replacedIndex > -1){
+                var selectorId = sheetMeta.selectorIds[replacedIndex];
+                selector = selector +
+                  ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
+                stylesheet.stylesheet.rules[ruleIndex].
+                  selectors[selectorIndex] = selector;
+              };
               // Negate selector for all Shadow DOM
               Array.prototype.forEach.call(children, function(child){
                 observer.observe(child, {attributes: true, childList: true});
                 if(child.matches && child.matches(selector)){
                   var selectorId;
-                  // generate selector unique id if doesnt exist
-                  if(selector.indexOf(':not([' + BUFFER_ATTR + '*=') === -1){
+                  if(replacedIndex > -1){
+                    selectorId = sheetMeta.selectorIds[replacedIndex];
+                  }else if(selector.indexOf(':not([' + BUFFER_ATTR + '*=') === -1){
+                    // generate selector unique id if doesnt exist
                     selectorId = randomString(10);
                     selector = selector +
                       ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
                     stylesheet.stylesheet.rules[ruleIndex].
                       selectors[selectorIndex] = selector;
+                    sheetMeta.replacedSelectors.push(selectorKey);
+                    sheetMeta.selectorIds.push(selectorId);
                   }else{
                     // selectorId is at end, capped by '"])'
                     selectorId = selector.substr(-13, 10);
@@ -125,7 +124,9 @@
     Array.prototype.forEach.call(styleElements, function(style){
       parsedCss.push({
         data: style.innerHTML,
-        el: style
+        el: style,
+        replacedSelectors: [],
+        selectorIds: []
       });
     });
     //read linked stylesheets
@@ -148,7 +149,9 @@
           resp = request.responseText;
           parsedCss.push({
             data: request.responseText,
-            el: link
+            el: link,
+            replacedSelectors: [],
+            selectorIds: []
           });
         }else{
           // We reached our target server, but it returned an error
@@ -166,23 +169,12 @@
     });
   };
 
-  // @param {element} el - Child DOM element of simulated shadow
-  // @return {elemet} - Ancestor element
-  var findShadowRoot = function(el){
-    var parent = el.parentNode;
-    while(!el.parentNode.simulatedShadow){
-      parent = parent.parentNode;
-    };
-    return parent;
-  };
-
   // @param {string} selector - Element node name
   // @return {array} - Child Elements
   var findChildren = function(selector) {
     var roots = document.querySelectorAll(selector);
     var children = [];
     Array.prototype.forEach.call(roots, function(rootEl){
-      rootEl.simulatedShadow = true;
       observer.observe(rootEl, {attributes: true, childList: true});
       var found = rootEl.querySelectorAll('*');
       Array.prototype.forEach.call(found, function(child){
