@@ -21,4 +21,6 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 * parse rules inside media at-rules
 * support @import
 * ~~mutationobserver~~
-* ie10 performance!!!
+* reorganize loadcss to onload, allow tag declaration before onload
+* discussion of all shadows as child dom
+* overload registercomponent

@@ -129,9 +129,14 @@
       };
     });
 
-    // Remove old processed styles
     if(processedStyleEl){
-      processedStyleEl.parentNode.removeChild(processedStyleEl);
+      if(processedStyleEl.innerHTML === output){
+        // Don't exchange styles if the output didn't change
+        return;
+      }else{
+        // Remove old processed styles
+        processedStyleEl.parentNode.removeChild(processedStyleEl);
+      };
     };
     // Insert updated styles
     processedStyleEl = insertStyleElement(output);
