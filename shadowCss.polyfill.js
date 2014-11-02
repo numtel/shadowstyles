@@ -9,23 +9,41 @@
   var parsedSheets;
   // Current inserted style element
   var processedStyleEl;
+  // Cache node names to be shadowed while waiting for window.onload
+  var shadowNodes = [];
+  var documentReady = false;
 
   // Main public method
   // @param {string} nodeName - Element type to isolate styles of child DOM
   document.isolateShadowStyles = function(nodeName){
-    var shadowChildren = findChildren(nodeName);
-    if(parsedSheets === undefined){
-      parsedSheets = 'loading';
-      loadAllStyleSheets(function(data){
-        // Actually a synchronous callback
-        parsedSheets = data;
-        updateShadowCss(shadowChildren, parsedSheets);
-      });
-    }else if(parsedSheets !== 'loading'){
-      // Should never see parsedSheets as 'loading'
-      updateShadowCss(shadowChildren, parsedSheets);
+    shadowNodes.push(nodeName);
+    addShadowNodes();
+  };
+  
+  var addShadowNodes = function(){
+    if(documentReady){
+      while(shadowNodes.length){
+        var nodeName = shadowNodes.shift();
+        var shadowChildren = findChildren(nodeName);
+        if(parsedSheets === undefined){
+          parsedSheets = 'loading';
+          loadAllStyleSheets(function(data){
+            // Actually a synchronous callback
+            parsedSheets = data;
+            updateShadowCss(shadowChildren, parsedSheets);
+          });
+        }else if(parsedSheets !== 'loading'){
+          // Should never see parsedSheets as 'loading'
+          updateShadowCss(shadowChildren, parsedSheets);
+        };
+      };
     };
   };
+
+  window.addEventListener('load', function(){
+    documentReady = true;
+    addShadowNodes();
+  }, true);
 
   // Watch for changes to shadowed elements
   var observer = new MutationObserver(function(mutations){
@@ -139,7 +157,7 @@
           });
         };
       });
-      output += css.stringify(stylesheet);
+      output += css.stringify(stylesheet) + '\n';
 
       if(sheetMeta.el){
         // Remove old stylesheet element
@@ -217,9 +235,13 @@
 
       request.onload = function() {
         if(request.status >= 200 && request.status < 400){
+          var data = request.responseText;
+          if(link.media){
+            data = '\n@media ' + link.media + ' {\n' + data + '\n}';
+          };
           // Success!
           parsedCss.push({
-            data: request.responseText,
+            data: data,
             el: link,
             replacedSelectors: [],
             selectorIds: []

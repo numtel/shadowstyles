@@ -6,6 +6,7 @@
   <script src="matches.polyfill.js"></script>
   <script src="shadowCss.polyfill.js"></script>
   <link rel="stylesheet" href="sample.css">
+  <link rel="stylesheet" href="sample-print.css" media="print">
   <!-- Latest compiled and minified CSS -->
   <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
 
@@ -15,9 +16,7 @@
   <!-- Latest compiled and minified JavaScript -->
   <!--<script src="bootstrap/js/bootstrap.min.js"></script>-->
   <script>
-    window.onload = function(){
-      document.isolateShadowStyles('x-foo');
-    };
+    document.isolateShadowStyles('x-foo');
   </script>
 </head>
 <body>

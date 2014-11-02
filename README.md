@@ -14,7 +14,7 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 
 ## Todo
 
-* link media attribute pass through
+* ~~link media attribute pass through~~
 * ~~do not remove sheets that weren't loaded~~
 * ~~support multiple element types concurrently~~
 * url path rewriting
@@ -22,7 +22,7 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 * support @import
 * ~~mutationobserver~~
 * ~~pseudo-classes must be stripped for matching~~
-* reorganize loadcss to onload, allow tag declaration before onload
+* ~~reorganize loadcss to onload, allow tag declaration before onload~~
 * discussion of all shadows as child dom
 * overload createshadowroot
 * support style/link tags inside shadowroot with scoping and :host pseudo rewrite
