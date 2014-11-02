@@ -1,8 +1,9 @@
 // shadow dom css isolation simulator polyfill
 // MIT License, ben@latenightsketches.com
 (function(){
+  "use strict";
   // A buffer must be made to bridge the elements to negated CSS selectors
-  var BUFFER_ATTR = 'data-css-selector';
+  var BUFFER_ATTR = 'data-css-negated';
   var UNIQUE_ID_LENGTH = 5;
   // Cache loaded stylesheet data
   var parsedSheets;
@@ -76,8 +77,7 @@
             if(replacedIndex > -1){
               // Selector already negated, update output
               var selectorId = sheetMeta.selectorIds[replacedIndex];
-              selector = selector +
-                ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
+              selector = insertBufferAttr(selector, selectorId);
               rule.selectors[selectorIndex] = selector;
             };
             // Negate selector for all Shadow DOM
@@ -89,8 +89,10 @@
                 attrVal = 'z'; // Any string will do
                 child.setAttribute(BUFFER_ATTR, attrVal);
               };
+              // Match without pseudo classs in the selector
+              var selectorToMatch = selector.replace(pseudoClassRegex, '');
               try{
-                var isMatch = child.matches && child.matches(selector);
+                var isMatch = child.matches && child.matches(selectorToMatch);
               }catch(err){
                 // Invalid selector
                 // console.log(err);
@@ -98,21 +100,24 @@
               };
               if(isMatch){
                 var selectorId;
+                var bufferPos = selector.indexOf(':not([' + BUFFER_ATTR + '*=');
                 if(replacedIndex > -1){
                   // selector already negated
                   selectorId = sheetMeta.selectorIds[replacedIndex];
-                }else if(selector.indexOf(':not([' + BUFFER_ATTR + '*=') === -1){
+                }else if(bufferPos === -1){
                   // not yet negated, generate selector unique id
+                  // trust that it's unique...checking would take too long!
+                  // Just up the length if there is possibility of a dupe
                   selectorId = randomString(UNIQUE_ID_LENGTH);
-                  selector = selector +
-                    ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
+                  selector = insertBufferAttr(selector, selectorId);
                   rule.selectors[selectorIndex] = selector;
                   // add record to meta object
                   sheetMeta.replacedSelectors.push(selectorKey);
                   sheetMeta.selectorIds.push(selectorId);
                 }else{
-                  // negated, selectorId is at end, capped by '"])'
-                  selectorId = selector.substr(-UNIQUE_ID_LENGTH - 3, 10);
+                  // negated, selectorId is after bufferPos
+                  selectorId = selector.substr(bufferPos + BUFFER_ATTR.length + 9,
+                                               UNIQUE_ID_LENGTH);
                 };
                 if(attrVal.indexOf(selectorId) === -1){
                   // add unique id to child if not included
@@ -156,6 +161,30 @@
     processedStyleEl = insertStyleElement(output);
   };
 
+  // Add buffer attribute to selector
+  // Takes existing pseudo class position into consideration
+  // @param {string} selector
+  // @param {string} selectorId - unique identifier
+  var insertBufferAttr = function(selector, selectorId){
+    var colonPos = selector.lastIndexOf(':');
+    var lastSpace = selector.lastIndexOf(' ');
+    var bufferAttr = ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
+    if(colonPos === -1 || 
+        (lastSpace > -1 && colonPos > lastSpace)){
+      // No pseudo-class, place at end
+      return selector + bufferAttr;
+    }else{
+      // Place before other pseudo-classes
+      var anotherColon = selector.lastIndexOf(':', colonPos - 1);
+      while(anotherColon > lastSpace){
+        colonPos = anotherColon;
+        anotherColon = selector.lastIndexOf(':', anotherColon - 1);
+      };
+      return selector.substr(0, colonPos) +
+              bufferAttr +
+              selector.substr(colonPos);
+    };
+  };
 
   // Load all the page's stylesheets and then call css event on document
   // Requests are made synchronously to allow script to run before page render
@@ -189,7 +218,6 @@
       request.onload = function() {
         if(request.status >= 200 && request.status < 400){
           // Success!
-          resp = request.responseText;
           parsedCss.push({
             data: request.responseText,
             el: link,
@@ -258,4 +286,6 @@
     return text;
   };
 
+  var pseudoClassRegex = new RegExp('(:after|:before|:hover|:active|:focus|' +
+        ':checked|:valid|:invalid)', 'gi');
 })();
