@@ -147,16 +147,17 @@
           };
         });
       };
+      var handleRules = function(rules){
+        rules.forEach(function(rule, ruleIndex){
+          if(rule.type === 'rule'){
+            handleRule(rule);
+          }else if(rule.rules){
+            handleRules(rule.rules);
+          };
+        });
+      };
       // Crawl the stylesheet
-      stylesheet.stylesheet.rules.forEach(function(rule, ruleIndex){
-        if(rule.type === 'rule'){
-          handleRule(rule);
-        }else if(rule.type === 'media'){
-          rule.rules.forEach(function(subRule){
-            handleRule(subRule);
-          });
-        };
-      });
+      handleRules(stylesheet.stylesheet.rules);
       output += css.stringify(stylesheet) + '\n';
 
       if(sheetMeta.el){
