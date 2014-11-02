@@ -18,9 +18,10 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 * ~~do not remove sheets that weren't loaded~~
 * ~~support multiple element types concurrently~~
 * url path rewriting
-* parse rules inside media at-rules
+* ~~parse rules inside media at-rules~~
 * support @import
 * ~~mutationobserver~~
+* pseudo-classes must be stripped for matching
 * reorganize loadcss to onload, allow tag declaration before onload
 * discussion of all shadows as child dom
-* overload registercomponent
+* overload createshadowroot

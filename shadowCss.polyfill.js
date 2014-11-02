@@ -3,6 +3,7 @@
 (function(){
   // A buffer must be made to bridge the elements to negated CSS selectors
   var BUFFER_ATTR = 'data-css-selector';
+  var UNIQUE_ID_LENGTH = 5;
   // Cache loaded stylesheet data
   var parsedSheets;
   // Current inserted style element
@@ -60,63 +61,76 @@
         stylesheet = css.parse(sheetMeta.data);
         sheetMeta.parsedData = JSON.stringify(stylesheet);
       };
-      stylesheet.stylesheet.rules.forEach(function(rule, ruleIndex){
-        if(rule.type === 'rule'){
-          rule.selectors.forEach(function(selector, selectorIndex){
-            if(selector.indexOf('::shadow') > -1){
-              // Shadow DOM is simply Child DOM
-              selector = selector.replace('::shadow', '');
-              stylesheet.stylesheet.rules[ruleIndex].
-                selectors[selectorIndex] = selector;
-            }else{
-              var selectorKey = selector + '@' +
-                                  rule.position.start.line + ':' +
-                                  rule.position.start.column;
-              var replacedIndex = sheetMeta.replacedSelectors.indexOf(selectorKey);
-              if(replacedIndex > -1){
-                // Selector already negated, update output
-                var selectorId = sheetMeta.selectorIds[replacedIndex];
-                selector = selector +
-                  ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
-                stylesheet.stylesheet.rules[ruleIndex].
-                  selectors[selectorIndex] = selector;
+      // Helper function relies on scope
+      var handleRule = function(rule){
+        rule.selectors.forEach(function(selector, selectorIndex){
+          if(selector.indexOf('::shadow') > -1){
+            // Shadow DOM is simply Child DOM
+            selector = selector.replace('::shadow', '');
+            rule.selectors[selectorIndex] = selector;
+          }else{
+            var selectorKey = selector + '@' +
+                                rule.position.start.line + ':' +
+                                rule.position.start.column;
+            var replacedIndex = sheetMeta.replacedSelectors.indexOf(selectorKey);
+            if(replacedIndex > -1){
+              // Selector already negated, update output
+              var selectorId = sheetMeta.selectorIds[replacedIndex];
+              selector = selector +
+                ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
+              rule.selectors[selectorIndex] = selector;
+            };
+            // Negate selector for all Shadow DOM
+            Array.prototype.forEach.call(children, function(child){
+              observer.observe(child, {attributes: true, childList: true});
+              var attrVal = child.getAttribute(BUFFER_ATTR);
+              if(!attrVal){
+                // Initialize attribute
+                attrVal = 'z'; // Any string will do
+                child.setAttribute(BUFFER_ATTR, attrVal);
               };
-              // Negate selector for all Shadow DOM
-              Array.prototype.forEach.call(children, function(child){
-                observer.observe(child, {attributes: true, childList: true});
-                var attrVal = child.getAttribute(BUFFER_ATTR);
-                if(!attrVal){
-                  // Initialize attribute
-                  attrVal = 'z'; // Any string will do
+              try{
+                var isMatch = child.matches && child.matches(selector);
+              }catch(err){
+                // Invalid selector
+                // console.log(err);
+                return;
+              };
+              if(isMatch){
+                var selectorId;
+                if(replacedIndex > -1){
+                  // selector already negated
+                  selectorId = sheetMeta.selectorIds[replacedIndex];
+                }else if(selector.indexOf(':not([' + BUFFER_ATTR + '*=') === -1){
+                  // not yet negated, generate selector unique id
+                  selectorId = randomString(UNIQUE_ID_LENGTH);
+                  selector = selector +
+                    ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
+                  rule.selectors[selectorIndex] = selector;
+                  // add record to meta object
+                  sheetMeta.replacedSelectors.push(selectorKey);
+                  sheetMeta.selectorIds.push(selectorId);
+                }else{
+                  // negated, selectorId is at end, capped by '"])'
+                  selectorId = selector.substr(-UNIQUE_ID_LENGTH - 3, 10);
+                };
+                if(attrVal.indexOf(selectorId) === -1){
+                  // add unique id to child if not included
+                  attrVal += selectorId;
                   child.setAttribute(BUFFER_ATTR, attrVal);
                 };
-                if(child.matches && child.matches(selector)){
-                  var selectorId;
-                  if(replacedIndex > -1){
-                    // selector already negated
-                    selectorId = sheetMeta.selectorIds[replacedIndex];
-                  }else if(selector.indexOf(':not([' + BUFFER_ATTR + '*=') === -1){
-                    // not yet negated, generate selector unique id
-                    selectorId = randomString(10);
-                    selector = selector +
-                      ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
-                    stylesheet.stylesheet.rules[ruleIndex].
-                      selectors[selectorIndex] = selector;
-                    // add record to meta object
-                    sheetMeta.replacedSelectors.push(selectorKey);
-                    sheetMeta.selectorIds.push(selectorId);
-                  }else{
-                    // negated, selectorId is at end, capped by '"])'
-                    selectorId = selector.substr(-13, 10);
-                  };
-                  if(attrVal.indexOf(selectorId) === -1){
-                    // add unique id to child if not included
-                    attrVal += selectorId;
-                    child.setAttribute(BUFFER_ATTR, attrVal);
-                  };
-                };
-              });
-            };
+              };
+            });
+          };
+        });
+      };
+      // Crawl the stylesheet
+      stylesheet.stylesheet.rules.forEach(function(rule, ruleIndex){
+        if(rule.type === 'rule'){
+          handleRule(rule);
+        }else if(rule.type === 'media'){
+          rule.rules.forEach(function(subRule){
+            handleRule(subRule);
           });
         };
       });

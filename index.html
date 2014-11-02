@@ -6,6 +6,14 @@
   <script src="matches.polyfill.js"></script>
   <script src="shadowCss.polyfill.js"></script>
   <link rel="stylesheet" href="sample.css">
+  <!-- Latest compiled and minified CSS -->
+  <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="bootstrap/css/bootstrap-theme.min.css">
+
+  <!-- Latest compiled and minified JavaScript -->
+  <!--<script src="bootstrap/js/bootstrap.min.js"></script>-->
   <script>
     window.onload = function(){
       document.isolateShadowStyles('x-foo');
@@ -13,10 +21,17 @@
   </script>
 </head>
 <body>
-<button onclick="document.querySelector('x-foo em').innerHTML+=' <b>hello</b>';">
+<div class="container">
+<button class="btn btn-default" onclick="document.querySelector('x-foo em').innerHTML+=' <b>hello</b>';">
   Click me! (No shadow dom isolation...)
 </button>
-<p> this is <em>cool</em></p>
-<x-foo class="talk">Bloooooo <em>mooon</em></x-foo>
+<p> this is <em>cool</em><span class="badge">Is a badge</span></p>
+<x-foo class="talk">
+  Bloooooo <em>mooon</em>
+  <div class="container">
+    <span class="badge">Is a badge</span>
+  </div>
+</x-foo>
+</div>
 </body>
 </html>

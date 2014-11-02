@@ -11,5 +11,6 @@ x-foo::shadow em { text-decoration: underline; }
 x-foo.talk::shadow em {border-top: 3px solid #428bca; }
 
 @media (max-width: 991px) {
-  x-foo { color: blue; }
+  x-foo em { color: blue; }
+  x-foo::shadow em { background-color:#ccc; }
 }
