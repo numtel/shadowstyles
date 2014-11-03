@@ -151,6 +151,8 @@
         rules.forEach(function(rule, ruleIndex){
           if(rule.type === 'rule'){
             handleRule(rule);
+          }else if(rule.type === 'import'){
+            console.log('slid on thru', rule, parseImport(rule.import, sheetMeta.path));
           }else if(rule.rules){
             handleRules(rule.rules);
           };
@@ -214,57 +216,50 @@
       root = document;
     };
     var parsedCss = [];
-    //read style tags
     var styleElements = root.querySelectorAll('style');
-    Array.prototype.forEach.call(styleElements, function(style){
-      parsedCss.push({
-        data: style.innerHTML,
-        el: style,
-        replacedSelectors: [],
-        selectorIds: []
-      });
-    });
-    //read linked stylesheets
-    var linkCount = 0, linkReturn = 0;
     var linkElements = root.querySelectorAll("link[rel=stylesheet]");
-    Array.prototype.forEach.call(linkElements, function(link){
-      linkCount++;
-      var path = link.href.slice(0, link.href.lastIndexOf("/") + 1);
-      var request = new XMLHttpRequest();
-      var onComplete = function(){
+    var linkCount = styleElements.length + linkElements.length;
+    var linkReturn = 0;
+    //read style tags
+    Array.prototype.forEach.call(styleElements, function(style){
+      insertImports(style.innerHTML, '', function(cssText){
         linkReturn++;
-        if(linkCount === linkReturn){
-          callback(parsedCss);
-        };
-      };
-
-      request.onload = function() {
-        if(request.status >= 200 && request.status < 400){
-          var data = request.responseText;
-          if(link.media){
-            data = '\n@media ' + link.media + ' {\n' + data + '\n}';
-          };
-          data = rewriteUrls(data, path);
-          // Success!
+        if(cssText){
           parsedCss.push({
-            data: data,
-            el: link,
+            data: cssText,
+            el: style,
+            path: '',
             replacedSelectors: [],
             selectorIds: []
           });
-        }else{
-          // We reached our target server, but it returned an error
         };
-        onComplete();
+        if(linkCount === linkReturn){
+          callback(parsedCss);
+        };
+      });
+    });
+    //read linked stylesheets
+    Array.prototype.forEach.call(linkElements, function(link){
+      var path = link.href.slice(0, link.href.lastIndexOf("/") + 1);
+      var origin = window.location.protocol + "//" + window.location.host;
+      if(path.substr(0, origin.length) === origin){
+        path = path.substr(origin.length);
       };
-
-      request.onerror = function() {
-        // There was a connection error of some sort
-        onComplete();
-      };
-      // Perform synchronous request (should already be cached)
-      request.open('GET', link.href, false);
-      request.send(null);
+      syncJaxCss(link.href, path, link.media, function(cssText){
+        linkReturn++;
+        if(cssText){
+          parsedCss.push({
+            data: cssText,
+            el: link,
+            path: path,
+            replacedSelectors: [],
+            selectorIds: []
+          });
+        };
+        if(linkCount === linkReturn){
+          callback(parsedCss);
+        };
+      });
     });
   };
 
@@ -288,6 +283,99 @@
       };
     });
     return data;
+  };
+
+  // Load a CSS file synchronously
+  // @param {string} href - Location of CSS file
+  // @param {string} prefix - Relative path to CSS file for adjusting url()
+  // @param {string} media - Optional, wrap this file in a media query
+  // @param {function} callback - One parameter: data
+  var syncJaxCss = function(href, prefix, media, callback){
+    var request = new XMLHttpRequest();
+    request.onload = function() {
+      if(request.status >= 200 && request.status < 400){
+        var data = request.responseText;
+        if(media){
+          data = '\n@media ' + media + ' {\n' + data + '\n}';
+        };
+        data = rewriteUrls(data, prefix);
+        insertImports(data, prefix, callback);
+      }else{
+        callback();
+      };
+    };
+    request.onerror = function() {
+      // There was a connection error of some sort
+      callback();
+    };
+
+    // Perform synchronous request (should already be cached)
+    request.open('GET', href, false);
+    request.send(null);
+  };
+
+  // Find @import at-rules, insert into main contents
+  // @param {string} cssText - After rewriteUrls()
+  // @param {string} prefix - Prepend to relative urls
+  var insertImports = function(cssText, prefix, callback){
+    var imports = cssText.match(/@import [^;]+;/gi);
+    var importsReturned = 0;
+    if(!imports) return callback(cssText);
+    imports && imports.forEach(function(importStr){
+      var importDef = importStr.substr(8, importStr.length - 9);
+      getImportData(importDef, prefix, function(data){
+        importsReturned++;
+        if(data){
+          cssText = cssText.replace(importStr, data);
+        };
+        if(importsReturned === imports.length){
+          callback(cssText);
+        };
+      });
+    });
+  };
+
+  // Load an imported css file
+  // @param {string} def - The portion of the line after @import
+  // @param {string} prefix - Prepend to relative urls
+  // @param {function} callback - One parameter: data
+  var getImportData = function(def, prefix, callback){
+    var info = parseImport(def, prefix);
+    if(!info) return;
+    var importPath = info.url.slice(0, info.url.lastIndexOf("/") + 1);
+    syncJaxCss(info.url, importPath, info.media, callback);
+  };
+
+  // Parse an @import string
+  // @param {string} def - The portion of the line after @import
+  // @param {string} prefix - Prepend to relative urls
+  var parseImport = function(def, prefix){
+    var urlBrackets = {
+      "'": "'",
+      '"': '"',
+      'url("': '")',
+      "url('": "')",
+      'url(': ')'
+    };
+    var url, media;
+    var urlEndPos;
+    for(var i in urlBrackets){
+      if(urlBrackets.hasOwnProperty(i) &&
+          def.substr(0, i.length).toLowerCase() === i){
+        urlEndPos = def.indexOf(urlBrackets[i], i.length);
+        url = def.substr(i.length, urlEndPos - i.length);
+        // 'url()' have already been processed in rewriteUrls()
+        if(i.substr(0,3) !== 'url' && !url.match(/^(http:|https:|\/)/i)){
+          url = prefix + url;
+        };
+        media = def.substr(urlEndPos + urlBrackets[i].length).trim() || null;
+        break;
+      };
+    };
+
+    if(!url) return;
+
+    return {url: url, media: media};
   };
 
   // @param {string} selector - Element node name

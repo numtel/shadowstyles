@@ -1,3 +1,4 @@
+@import url(sample-import.css) screen and (max-width:991px);
 x-foo {color: red; font-weight:normal;}
 
 x-foo em { font-weight: bold; }

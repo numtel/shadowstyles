@@ -19,10 +19,12 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 * ~~support multiple element types concurrently~~
 * ~~url path rewriting~~
 * ~~parse rules inside media at-rules~~
-* support @import
+* ~~support @import~~
 * ~~mutationobserver~~
 * ~~pseudo-classes must be stripped for matching~~
 * ~~reorganize loadcss to onload, allow tag declaration before onload~~
 * discussion of all shadows as child dom
 * overload createshadowroot
 * support style/link tags inside shadowroot with scoping and :host pseudo rewrite
+* observe ancestors (skip siblings) for rule match changes
+* ie font caching definitive answer
