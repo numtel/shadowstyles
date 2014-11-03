@@ -26,16 +26,9 @@
         var nodeName = shadowNodes.shift();
         var shadowChildren = findChildren(nodeName);
         if(parsedSheets === undefined){
-          parsedSheets = 'loading';
-          loadAllStyleSheets(document, function(data){
-            // Actually a synchronous callback
-            parsedSheets = data;
-            updateShadowCss(shadowChildren, parsedSheets);
-          });
-        }else if(parsedSheets !== 'loading'){
-          // Should never see parsedSheets as 'loading'
-          updateShadowCss(shadowChildren, parsedSheets);
+          parsedSheets = loadAllStyleSheets(document);
         };
+        updateShadowCss(shadowChildren, parsedSheets);
       };
     };
   };
@@ -151,8 +144,6 @@
         rules.forEach(function(rule, ruleIndex){
           if(rule.type === 'rule'){
             handleRule(rule);
-          }else if(rule.type === 'import'){
-            console.log('slid on thru', rule, parseImport(rule.import, sheetMeta.path));
           }else if(rule.rules){
             handleRules(rule.rules);
           };
@@ -186,6 +177,7 @@
   // Takes existing pseudo class position into consideration
   // @param {string} selector
   // @param {string} selectorId - unique identifier
+  // @return {string} - Modified selector
   var insertBufferAttr = function(selector, selectorId){
     var colonPos = selector.lastIndexOf(':');
     var lastSpace = selector.lastIndexOf(' ');
@@ -207,65 +199,55 @@
     };
   };
 
-  // Load all the page's stylesheets and then call css event on document
+  // Load all the page's stylesheets
   // Requests are made synchronously to allow script to run before page render
   // @param {element} root - Ancestor element to look for style, link tags
-  // @param {function} callback - One parameter: array output {el, data}
-  var loadAllStyleSheets = function(root, callback) {
+  // @return {[obj]} - Array containing objects with CSS text and element ref
+  var loadAllStyleSheets = function(root) {
     if(root === undefined){
       root = document;
     };
     var parsedCss = [];
-    var styleElements = root.querySelectorAll('style');
-    var linkElements = root.querySelectorAll("link[rel=stylesheet]");
-    var linkCount = styleElements.length + linkElements.length;
-    var linkReturn = 0;
     //read style tags
+    var styleElements = root.querySelectorAll('style');
     Array.prototype.forEach.call(styleElements, function(style){
-      insertImports(style.innerHTML, '', function(cssText){
-        linkReturn++;
-        if(cssText){
-          parsedCss.push({
-            data: cssText,
-            el: style,
-            path: '',
-            replacedSelectors: [],
-            selectorIds: []
-          });
-        };
-        if(linkCount === linkReturn){
-          callback(parsedCss);
-        };
-      });
+      var cssText = insertImports(style.innerHTML, '');
+      if(cssText){
+        parsedCss.push({
+          data: cssText,
+          el: style,
+          path: '',
+          replacedSelectors: [],
+          selectorIds: []
+        });
+      };
     });
     //read linked stylesheets
+    var linkElements = root.querySelectorAll("link[rel=stylesheet]");
     Array.prototype.forEach.call(linkElements, function(link){
       var path = link.href.slice(0, link.href.lastIndexOf("/") + 1);
       var origin = window.location.protocol + "//" + window.location.host;
       if(path.substr(0, origin.length) === origin){
         path = path.substr(origin.length);
       };
-      syncJaxCss(link.href, path, link.media, function(cssText){
-        linkReturn++;
-        if(cssText){
-          parsedCss.push({
-            data: cssText,
-            el: link,
-            path: path,
-            replacedSelectors: [],
-            selectorIds: []
-          });
-        };
-        if(linkCount === linkReturn){
-          callback(parsedCss);
-        };
-      });
+      var cssText = syncJaxCss(link.href, path, link.media);
+      if(cssText){
+        parsedCss.push({
+          data: cssText,
+          el: link,
+          path: path,
+          replacedSelectors: [],
+          selectorIds: []
+        });
+      };
     });
+    return parsedCss;
   };
 
   // For a given block of CSS, add prefix to all url() paths
   // @param {string} data - CSS text
   // @param {string} prefix - Relative path to original stylesheet
+  // @return {string} - Modified data
   var rewriteUrls = function(data, prefix){
     // match url() with single, double, or no quotes
     var urls = data.match(/\burl\(('([^']+)'|"([^"]+)"|([^\)\(]+))\)/gi);
@@ -289,66 +271,55 @@
   // @param {string} href - Location of CSS file
   // @param {string} prefix - Relative path to CSS file for adjusting url()
   // @param {string} media - Optional, wrap this file in a media query
-  // @param {function} callback - One parameter: data
-  var syncJaxCss = function(href, prefix, media, callback){
+  // @return {string} CSS text, undefined on failure
+  var syncJaxCss = function(href, prefix, media){
     var request = new XMLHttpRequest();
-    request.onload = function() {
-      if(request.status >= 200 && request.status < 400){
-        var data = request.responseText;
-        if(media){
-          data = '\n@media ' + media + ' {\n' + data + '\n}';
-        };
-        data = rewriteUrls(data, prefix);
-        insertImports(data, prefix, callback);
-      }else{
-        callback();
-      };
-    };
-    request.onerror = function() {
-      // There was a connection error of some sort
-      callback();
-    };
-
     // Perform synchronous request (should already be cached)
     request.open('GET', href, false);
     request.send(null);
+    if(request.status >= 200 && request.status < 400){
+      var data = request.responseText;
+      if(media){
+        data = '\n@media ' + media + ' {\n' + data + '\n}';
+      };
+      data = rewriteUrls(data, prefix);
+      data = insertImports(data, prefix);
+      return data;
+    };
   };
 
   // Find @import at-rules, insert into main contents
   // @param {string} cssText - After rewriteUrls()
   // @param {string} prefix - Prepend to relative urls
-  var insertImports = function(cssText, prefix, callback){
+  // @return {string} - modified cssText
+  var insertImports = function(cssText, prefix){
     var imports = cssText.match(/@import [^;]+;/gi);
-    var importsReturned = 0;
-    if(!imports) return callback(cssText);
-    imports && imports.forEach(function(importStr){
+    if(!imports) return cssText;
+    imports.forEach(function(importStr){
       var importDef = importStr.substr(8, importStr.length - 9);
-      getImportData(importDef, prefix, function(data){
-        importsReturned++;
-        if(data){
-          cssText = cssText.replace(importStr, data);
-        };
-        if(importsReturned === imports.length){
-          callback(cssText);
-        };
-      });
+      var importData = getImportData(importDef, prefix);
+      if(importData){
+        cssText = cssText.replace(importStr, importData);
+      };
     });
+    return cssText
   };
 
   // Load an imported css file
   // @param {string} def - The portion of the line after @import
   // @param {string} prefix - Prepend to relative urls
-  // @param {function} callback - One parameter: data
-  var getImportData = function(def, prefix, callback){
+  // @return {string} - CSS text, undefined if invalid
+  var getImportData = function(def, prefix){
     var info = parseImport(def, prefix);
     if(!info) return;
     var importPath = info.url.slice(0, info.url.lastIndexOf("/") + 1);
-    syncJaxCss(info.url, importPath, info.media, callback);
+    return syncJaxCss(info.url, importPath, info.media);
   };
 
   // Parse an @import string
   // @param {string} def - The portion of the line after @import
   // @param {string} prefix - Prepend to relative urls
+  // @return {obj} - {url, media}, undefined if invalid
   var parseImport = function(def, prefix){
     var urlBrackets = {
       "'": "'",
