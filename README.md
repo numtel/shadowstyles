@@ -27,4 +27,4 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 * overload createshadowroot
 * support style/link tags inside shadowroot with scoping and :host pseudo rewrite
 * observe ancestors (skip siblings) for rule match changes
-* ie font caching definitive answer
+* ~~ie font caching definitive answer~~

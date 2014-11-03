@@ -152,25 +152,15 @@
       // Crawl the stylesheet
       handleRules(stylesheet.stylesheet.rules);
       output += css.stringify(stylesheet) + '\n';
-
-      if(sheetMeta.el){
-        // Remove old stylesheet element
-        sheetMeta.el.parentNode.removeChild(sheetMeta.el);
-        delete sheetMeta.el;
-      };
     });
 
     if(processedStyleEl){
-      if(processedStyleEl.innerHTML === output){
-        // Don't exchange styles if the output didn't change
-        return;
-      }else{
-        // Remove old processed styles
-        processedStyleEl.parentNode.removeChild(processedStyleEl);
+      if(processedStyleEl.innerHTML !== output){
+        processedStyleEl.innerHTML = output;
       };
+    }else{
+      processedStyleEl = insertStyleElement(output);
     };
-    // Insert updated styles
-    processedStyleEl = insertStyleElement(output);
   };
 
   // Add buffer attribute to selector
@@ -211,6 +201,10 @@
     //read style tags
     var styleElements = root.querySelectorAll('style');
     Array.prototype.forEach.call(styleElements, function(style){
+      if(!(style.type === undefined || style.type === '' ||
+          String(style.type).toLowerCase() === 'text/css')){
+        return;
+      };
       var cssText = insertImports(style.innerHTML, '');
       if(cssText){
         parsedCss.push({
@@ -220,11 +214,16 @@
           replacedSelectors: [],
           selectorIds: []
         });
+        style.type = "negated-text/css";
       };
     });
     //read linked stylesheets
     var linkElements = root.querySelectorAll("link[rel=stylesheet]");
     Array.prototype.forEach.call(linkElements, function(link){
+      if(!(link.type === undefined || link.type === '' ||
+          String(link.type).toLowerCase() === 'text/css')){
+        return;
+      };
       var path = link.href.slice(0, link.href.lastIndexOf("/") + 1);
       var origin = window.location.protocol + "//" + window.location.host;
       if(path.substr(0, origin.length) === origin){
@@ -239,6 +238,7 @@
           replacedSelectors: [],
           selectorIds: []
         });
+        link.rel = "negated-stylesheet";
       };
     });
     return parsedCss;
