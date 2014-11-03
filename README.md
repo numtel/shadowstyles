@@ -17,7 +17,7 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
 * ~~link media attribute pass through~~
 * ~~do not remove sheets that weren't loaded~~
 * ~~support multiple element types concurrently~~
-* url path rewriting
+* ~~url path rewriting~~
 * ~~parse rules inside media at-rules~~
 * support @import
 * ~~mutationobserver~~

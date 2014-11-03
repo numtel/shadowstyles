@@ -27,7 +27,7 @@
         var shadowChildren = findChildren(nodeName);
         if(parsedSheets === undefined){
           parsedSheets = 'loading';
-          loadAllStyleSheets(function(data){
+          loadAllStyleSheets(document, function(data){
             // Actually a synchronous callback
             parsedSheets = data;
             updateShadowCss(shadowChildren, parsedSheets);
@@ -207,11 +207,15 @@
 
   // Load all the page's stylesheets and then call css event on document
   // Requests are made synchronously to allow script to run before page render
+  // @param {element} root - Ancestor element to look for style, link tags
   // @param {function} callback - One parameter: array output {el, data}
-  var loadAllStyleSheets = function(callback) {
+  var loadAllStyleSheets = function(root, callback) {
+    if(root === undefined){
+      root = document;
+    };
     var parsedCss = [];
     //read style tags
-    var styleElements = document.querySelectorAll('style');
+    var styleElements = root.querySelectorAll('style');
     Array.prototype.forEach.call(styleElements, function(style){
       parsedCss.push({
         data: style.innerHTML,
@@ -222,7 +226,7 @@
     });
     //read linked stylesheets
     var linkCount = 0, linkReturn = 0;
-    var linkElements = document.querySelectorAll("link[rel=stylesheet]");
+    var linkElements = root.querySelectorAll("link[rel=stylesheet]");
     Array.prototype.forEach.call(linkElements, function(link){
       linkCount++;
       var path = link.href.slice(0, link.href.lastIndexOf("/") + 1);
@@ -240,6 +244,7 @@
           if(link.media){
             data = '\n@media ' + link.media + ' {\n' + data + '\n}';
           };
+          data = rewriteUrls(data, path);
           // Success!
           parsedCss.push({
             data: data,
@@ -261,6 +266,28 @@
       request.open('GET', link.href, false);
       request.send(null);
     });
+  };
+
+  // For a given block of CSS, add prefix to all url() paths
+  // @param {string} data - CSS text
+  // @param {string} prefix - Relative path to original stylesheet
+  var rewriteUrls = function(data, prefix){
+    // match url() with single, double, or no quotes
+    var urls = data.match(/\burl\(('([^']+)'|"([^"]+)"|([^\)\(]+))\)/gi);
+    urls && urls.forEach(function(url){
+      var quoteChar = url.substr(4,1);
+      var hasQuote = quoteChar === '"' || quoteChar === "'";
+      var startPos = hasQuote ? 5 : 4;
+      var origUrl = url.substr(startPos,
+                              url.length - startPos - (hasQuote ? 2 : 1));
+      if(!origUrl.match(/^(http:|https:|\/)/i)){
+        // Url must not start with protocol or slash
+        var newUrl = url.substr(0, startPos) +
+                     prefix + url.substr(startPos);
+        data = data.replace(url, newUrl);
+      };
+    });
+    return data;
   };
 
   // @param {string} selector - Element node name
