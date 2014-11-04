@@ -1,8 +1,12 @@
-# Experimental Shadow DOM CSS Polyfill
+# Shadow Styles
 
-Bring support for isolated CSS in shadow elements to browsers that do not natively support `Element.createShadowRoot()`. (Firefox, IE9+)
+[![Build Status](https://travis-ci.org/numtel/shadowstyles.svg?branch=master)](https://travis-ci.org/numtel/shadowstyles)
 
-Use at your own risk! Still under construction. [View Demo](http://numtel.github.io/shadowcss-polyfill-demo)
+WebComponents bring Shadow DOM with isolated CSS to some browsers.
+This script simulates CSS isolation for all modern browsers (IE9+, Firefox...).
+
+## Installation
+...
 
 ## How it works
 
@@ -11,7 +15,24 @@ Use at your own risk! Still under construction. [View Demo](http://numtel.github
     pseudo-class with a unique ID to each rule. Shadowed elements gain the buffer
     attribute containing the unique ID of each negated rule.
 
+### Targeting simulated shadows
+
+Shadowed elements are given a `shadow` attribute that must be present in the
+selector:
+
+```css
+shadowed-element[shadow] p { color: blue; }
+```
+
+### Why not `::shadow`?
+
+Originally, the plan of this project was to support styles using the native
+`::shadow` pseudo-class syntax. Until the fifteenth commit, this worked, but
+only if all the page's stylesheets were rewritten completely. By only
+using selectors that the browser already supports, the script can skip parsing
+all of your CSS itself and rely on the browser's interpretation, only making
+small changes as needed.
+
 ## Todo
 
-* overload createshadowroot
 * observe ancestors (skip siblings) for rule match changes
