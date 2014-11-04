@@ -13,7 +13,7 @@
 
   // Main public method
   // @param {string} nodeName - Element type to isolate styles of child DOM
-  document.isolateShadowStyles = function(nodeName){
+  document.shadowStyles = function(nodeName){
     shadowNodes.push(nodeName);
     addShadowNodes();
   };

@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../../dist/bind.polyfill.js"></script>
+  <script src="../../dist/x-tag-components.js"></script>
+  <script src="../../dist/matches.polyfill.js"></script>
+  <script src="../../src/shadowStyles.js"></script>
+  <style>
+    x-foo { color: red; }
+    p { color: blue; }
+  </style>
+  <script>
+    document.shadowStyles('x-foo');
+  </script>
+</head>
+<body>
+  <x-foo class="talk">
+    <p>something</p>
+  </x-foo>
+</body>
+</html>

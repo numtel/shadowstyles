@@ -1,19 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="x-tag-components.min.js"></script>
-  <script src="matches.polyfill.js"></script>
-  <script src="shadowCss.polyfill.js"></script>
+  <script src="dist/x-tag-components.min.js"></script>
+  <script src="dist/matches.polyfill.js"></script>
+  <script src="src/shadowStyles.js"></script>
   <link rel="stylesheet" href="sample.css">
   <link rel="stylesheet" href="sample-print.css" media="print">
   <!-- Latest compiled and minified CSS -->
-  <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="dist/bootstrap/css/bootstrap.min.css">
 
   <!-- Optional theme -->
-  <link rel="stylesheet" href="bootstrap/css/bootstrap-theme.min.css">
-
-  <!-- Latest compiled and minified JavaScript -->
-  <!--<script src="bootstrap/js/bootstrap.min.js"></script>-->
+  <link rel="stylesheet" href="dist/bootstrap/css/bootstrap-theme.min.css">
   <style type="text/css">
     @import "sample-import.css" print;
   </style>
@@ -24,7 +21,7 @@
     body { border-top: 4px solid #428bca; }
   </style>
   <script>
-    document.isolateShadowStyles('x-foo');
+    document.shadowStyles('x-foo');
   </script>
 </head>
 <body>
