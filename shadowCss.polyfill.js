@@ -3,12 +3,10 @@
 (function(){
   "use strict";
   // A buffer must be made to bridge the elements to negated CSS selectors
-  var BUFFER_ATTR = 'data-css-negated';
+  var BUFFER_ATTR = 'css-negate';
+  var SHADOW_ATTR = 'shadow'
   var UNIQUE_ID_LENGTH = 5;
-  // Cache loaded stylesheet data
-  var parsedSheets;
-  // Current inserted style element
-  var processedStyleEl;
+
   // Cache node names to be shadowed while waiting for window.onload
   var shadowNodes = [];
   var documentReady = false;
@@ -25,10 +23,7 @@
       while(shadowNodes.length){
         var nodeName = shadowNodes.shift();
         var shadowChildren = findChildren(nodeName);
-        if(parsedSheets === undefined){
-          parsedSheets = loadAllStyleSheets(document);
-        };
-        updateShadowCss(shadowChildren, parsedSheets);
+        updateShadowCss(shadowChildren);
       };
     };
   };
@@ -41,126 +36,107 @@
   // Watch for changes to shadowed elements
   var observer = new MutationObserver(function(mutations){
     mutations.forEach(function(mutation){
-      if(mutation.type === 'attributes' && mutation.attributeName !== BUFFER_ATTR){
-        updateShadowCss([mutation.target], parsedSheets);
+      if(mutation.type === 'attributes' &&
+          mutation.attributeName !== SHADOW_ATTR &&
+          mutation.attributeName !== BUFFER_ATTR){
+        if(mutation.target.hasAttribute(SHADOW_ATTR)){
+          updateShadowCss(mutation.target.querySelectorAll('*'));
+        }else{
+          updateShadowCss([mutation.target]);
+        };
       }else if(mutation.type === 'childList'){
         var sorted = [];
         Array.prototype.forEach.call(mutation.addedNodes, function(el){
           var removed = Array.prototype.indexOf.call(mutation.removedNodes, el);
           if(el.nodeName !== '#text' && !el.getAttribute(BUFFER_ATTR)){
+            // A new child element has appeared!
+            observer.observe(el, {attributes: true, childList: true});
+            el.setAttribute(BUFFER_ATTR, '');
             sorted.push(el);
           };
         });
         if(sorted.length > 0){
-          updateShadowCss(sorted, parsedSheets);
+          updateShadowCss(sorted);
         };
       };
     });
   });
 
-  // Modify document styles to place selected element child DOM in a simulated
-  // shadow.
-  // @param {[element]} children - Which elements to simulate child DOM in
-  //                               shadow
-  // @param {[obj]}    parsedCss - Output from loadAllStyleSheets()
-  var updateShadowCss = function(children, parsedCss){
-    var output = '';
-    parsedCss.forEach(function(sheetMeta){
-      var stylesheet;
-      if(sheetMeta.parsedData){
-        stylesheet = JSON.parse(sheetMeta.parsedData);
-      }else{
-        stylesheet = css.parse(sheetMeta.data);
-        sheetMeta.parsedData = JSON.stringify(stylesheet);
-      };
-      // Helper function relies on scope
-      var handleRule = function(rule){
-        rule.selectors.forEach(function(selector, selectorIndex){
-          if(selector.indexOf('::shadow') > -1){
-            // Shadow DOM is simply Child DOM
-            selector = selector.replace('::shadow', '');
-            rule.selectors[selectorIndex] = selector;
-          }else{
-            var selectorKey = selector + '@' +
-                                rule.position.start.line + ':' +
-                                rule.position.start.column;
-            var replacedIndex = sheetMeta.replacedSelectors.indexOf(selectorKey);
-            if(replacedIndex > -1){
-              // Selector already negated, update output
-              var selectorId = sheetMeta.selectorIds[replacedIndex];
-              selector = insertBufferAttr(selector, selectorId);
-              rule.selectors[selectorIndex] = selector;
+  var updateShadowCss = function(nodeList){
+    Array.prototype.forEach.call(document.styleSheets, function(sheetRoot){
+      crawlRules(sheetRoot, function(rule, ruleIndex, sheet){
+        var selectors = rule.selectorText.split(',');
+        selectors.forEach(function(selector, selectorIndex){
+          selector = selector.trim();
+          // Skip selectors that match shadow attribute
+          if(selector.indexOf('[' + SHADOW_ATTR + ']') > -1) return;
+          // Match without pseudo classs in the selector
+          var selectorToMatch = selector.replace(regex.pseudoClass, '');
+          Array.prototype.forEach.call(nodeList, function(child){
+            var attrVal = child.getAttribute(BUFFER_ATTR);
+            try{
+              var isMatch = child.matches && child.matches(selectorToMatch);
+            }catch(err){
+              // Invalid selector
+              return;
             };
-            // Negate selector for all Shadow DOM
-            Array.prototype.forEach.call(children, function(child){
-              observer.observe(child, {attributes: true, childList: true});
-              var attrVal = child.getAttribute(BUFFER_ATTR);
-              if(!attrVal){
-                // Initialize attribute
-                attrVal = 'z'; // Any string will do
+            if(isMatch){
+              // Check if unique identifier already exists
+              var negateId = selector.match(regex.bufferAttr);
+              if(negateId){
+                negateId = negateId[1];
+              }else{
+                negateId = randomString(UNIQUE_ID_LENGTH);
+                selector = selectors[selectorIndex] = 
+                  insertBufferAttr(selector, negateId);
+                var ruleBody = rule.cssText.substr(rule.selectorText.length);
+                sheet.insertRule(selectors.join(', ') + ruleBody, ruleIndex + 1);
+                sheet.deleteRule(ruleIndex);
+                rule = sheet.cssRules[ruleIndex];
+              };
+
+              if(attrVal.indexOf(negateId) === -1){
+                attrVal += negateId;
                 child.setAttribute(BUFFER_ATTR, attrVal);
               };
-              // Match without pseudo classs in the selector
-              var selectorToMatch = selector.replace(pseudoClassRegex, '');
-              try{
-                var isMatch = child.matches && child.matches(selectorToMatch);
-              }catch(err){
-                // Invalid selector
-                // console.log(err);
-                return;
-              };
-              if(isMatch){
-                var selectorId;
-                var bufferPos = selector.indexOf(':not([' + BUFFER_ATTR + '*=');
-                if(replacedIndex > -1){
-                  // selector already negated
-                  selectorId = sheetMeta.selectorIds[replacedIndex];
-                }else if(bufferPos === -1){
-                  // not yet negated, generate selector unique id
-                  // trust that it's unique...checking would take too long!
-                  // Just up the length if there is possibility of a dupe
-                  selectorId = randomString(UNIQUE_ID_LENGTH);
-                  selector = insertBufferAttr(selector, selectorId);
-                  rule.selectors[selectorIndex] = selector;
-                  // add record to meta object
-                  sheetMeta.replacedSelectors.push(selectorKey);
-                  sheetMeta.selectorIds.push(selectorId);
-                }else{
-                  // negated, selectorId is after bufferPos
-                  selectorId = selector.substr(bufferPos + BUFFER_ATTR.length + 9,
-                                               UNIQUE_ID_LENGTH);
-                };
-                if(attrVal.indexOf(selectorId) === -1){
-                  // add unique id to child if not included
-                  attrVal += selectorId;
-                  child.setAttribute(BUFFER_ATTR, attrVal);
-                };
-              };
-            });
-          };
+            };
+          });
         });
-      };
-      var handleRules = function(rules){
-        rules.forEach(function(rule, ruleIndex){
-          if(rule.type === 'rule'){
-            handleRule(rule);
-          }else if(rule.rules){
-            handleRules(rule.rules);
-          };
-        });
-      };
-      // Crawl the stylesheet
-      handleRules(stylesheet.stylesheet.rules);
-      output += css.stringify(stylesheet) + '\n';
+      });
     });
+  };
 
-    if(processedStyleEl){
-      if(processedStyleEl.innerHTML !== output){
-        processedStyleEl.innerHTML = output;
-      };
-    }else{
-      processedStyleEl = insertStyleElement(output);
+  var crawlRules = function(sheet, ruleHandler){
+    if(sheet.cssRules){
+      Array.prototype.forEach.call(sheet.cssRules, function(rule, index){
+        if(rule.type === 1){
+          // Normal rule
+          ruleHandler(rule, index, sheet);
+        }else if(rule.cssRules) {
+          // Has child rules, like @media
+          crawlRules(rule, ruleHandler);
+        }else if(rule.styleSheet) {
+          // Has child sheet, like @import
+          crawlRules(rule.styleSheet, ruleHandler);
+        };
+      });
     };
+  };
+
+  var findChildren = function(selector) {
+    var roots = document.querySelectorAll(selector);
+    var children = [];
+    Array.prototype.forEach.call(roots, function(rootEl){
+      observer.observe(rootEl, {attributes: true, childList: true});
+      rootEl.setAttribute(SHADOW_ATTR, '');
+      var found = rootEl.querySelectorAll('*');
+      Array.prototype.forEach.call(found, function(child){
+        observer.observe(child, {attributes: true, childList: true});
+        child.setAttribute(BUFFER_ATTR, '');
+        children.push(child);
+      });
+    });
+    return children;
   };
 
   // Add buffer attribute to selector
@@ -189,212 +165,18 @@
     };
   };
 
-  // Load all the page's stylesheets
-  // Requests are made synchronously to allow script to run before page render
-  // @param {element} root - Ancestor element to look for style, link tags
-  // @return {[obj]} - Array containing objects with CSS text and element ref
-  var loadAllStyleSheets = function(root) {
-    if(root === undefined){
-      root = document;
-    };
-    var parsedCss = [];
-    //read style tags
-    var styleElements = root.querySelectorAll('style');
-    Array.prototype.forEach.call(styleElements, function(style){
-      if(!(style.type === undefined || style.type === '' ||
-          String(style.type).toLowerCase() === 'text/css')){
-        return;
-      };
-      var cssText = insertImports(style.innerHTML, '');
-      if(cssText){
-        parsedCss.push({
-          data: cssText,
-          el: style,
-          path: '',
-          replacedSelectors: [],
-          selectorIds: []
-        });
-        style.type = "negated-text/css";
-      };
-    });
-    //read linked stylesheets
-    var linkElements = root.querySelectorAll("link[rel=stylesheet]");
-    Array.prototype.forEach.call(linkElements, function(link){
-      if(!(link.type === undefined || link.type === '' ||
-          String(link.type).toLowerCase() === 'text/css')){
-        return;
-      };
-      var path = link.href.slice(0, link.href.lastIndexOf("/") + 1);
-      var origin = window.location.protocol + "//" + window.location.host;
-      if(path.substr(0, origin.length) === origin){
-        path = path.substr(origin.length);
-      };
-      var cssText = syncJaxCss(link.href, path, link.media);
-      if(cssText){
-        parsedCss.push({
-          data: cssText,
-          el: link,
-          path: path,
-          replacedSelectors: [],
-          selectorIds: []
-        });
-        link.rel = "negated-stylesheet";
-      };
-    });
-    return parsedCss;
-  };
-
-  // For a given block of CSS, add prefix to all url() paths
-  // @param {string} data - CSS text
-  // @param {string} prefix - Relative path to original stylesheet
-  // @return {string} - Modified data
-  var rewriteUrls = function(data, prefix){
-    // match url() with single, double, or no quotes
-    var urls = data.match(/\burl\(('([^']+)'|"([^"]+)"|([^\)\(]+))\)/gi);
-    urls && urls.forEach(function(url){
-      var quoteChar = url.substr(4,1);
-      var hasQuote = quoteChar === '"' || quoteChar === "'";
-      var startPos = hasQuote ? 5 : 4;
-      var origUrl = url.substr(startPos,
-                              url.length - startPos - (hasQuote ? 2 : 1));
-      if(!origUrl.match(/^(http:|https:|\/)/i)){
-        // Url must not start with protocol or slash
-        var newUrl = url.substr(0, startPos) +
-                     prefix + url.substr(startPos);
-        data = data.replace(url, newUrl);
-      };
-    });
-    return data;
-  };
-
-  // Load a CSS file synchronously
-  // @param {string} href - Location of CSS file
-  // @param {string} prefix - Relative path to CSS file for adjusting url()
-  // @param {string} media - Optional, wrap this file in a media query
-  // @return {string} CSS text, undefined on failure
-  var syncJaxCss = function(href, prefix, media){
-    var request = new XMLHttpRequest();
-    // Perform synchronous request (should already be cached)
-    request.open('GET', href, false);
-    request.send(null);
-    if(request.status >= 200 && request.status < 400){
-      var data = request.responseText;
-      if(media){
-        data = '\n@media ' + media + ' {\n' + data + '\n}';
-      };
-      data = rewriteUrls(data, prefix);
-      data = insertImports(data, prefix);
-      return data;
-    };
-  };
-
-  // Find @import at-rules, insert into main contents
-  // @param {string} cssText - After rewriteUrls()
-  // @param {string} prefix - Prepend to relative urls
-  // @return {string} - modified cssText
-  var insertImports = function(cssText, prefix){
-    var imports = cssText.match(/@import [^;]+;/gi);
-    if(!imports) return cssText;
-    imports.forEach(function(importStr){
-      var importDef = importStr.substr(8, importStr.length - 9);
-      var importData = getImportData(importDef, prefix);
-      if(importData){
-        cssText = cssText.replace(importStr, importData);
-      };
-    });
-    return cssText
-  };
-
-  // Load an imported css file
-  // @param {string} def - The portion of the line after @import
-  // @param {string} prefix - Prepend to relative urls
-  // @return {string} - CSS text, undefined if invalid
-  var getImportData = function(def, prefix){
-    var info = parseImport(def, prefix);
-    if(!info) return;
-    var importPath = info.url.slice(0, info.url.lastIndexOf("/") + 1);
-    return syncJaxCss(info.url, importPath, info.media);
-  };
-
-  // Parse an @import string
-  // @param {string} def - The portion of the line after @import
-  // @param {string} prefix - Prepend to relative urls
-  // @return {obj} - {url, media}, undefined if invalid
-  var parseImport = function(def, prefix){
-    var urlBrackets = {
-      "'": "'",
-      '"': '"',
-      'url("': '")',
-      "url('": "')",
-      'url(': ')'
-    };
-    var url, media;
-    var urlEndPos;
-    for(var i in urlBrackets){
-      if(urlBrackets.hasOwnProperty(i) &&
-          def.substr(0, i.length).toLowerCase() === i){
-        urlEndPos = def.indexOf(urlBrackets[i], i.length);
-        url = def.substr(i.length, urlEndPos - i.length);
-        // 'url()' have already been processed in rewriteUrls()
-        if(i.substr(0,3) !== 'url' && !url.match(/^(http:|https:|\/)/i)){
-          url = prefix + url;
-        };
-        media = def.substr(urlEndPos + urlBrackets[i].length).trim() || null;
-        break;
-      };
-    };
-
-    if(!url) return;
-
-    return {url: url, media: media};
-  };
-
-  // @param {string} selector - Element node name
-  // @return {array} - Child Elements
-  var findChildren = function(selector) {
-    var roots = document.querySelectorAll(selector);
-    var children = [];
-    Array.prototype.forEach.call(roots, function(rootEl){
-      observer.observe(rootEl, {attributes: true, childList: true});
-      var found = rootEl.querySelectorAll('*');
-      Array.prototype.forEach.call(found, function(child){
-        children.push(child);
-      });
-    });
-    return children;
-  };
-
-  // @param {string} data - CSS Text
-  // @return {element} - Inserted style element
-  var insertStyleElement = function(data){
-    var head = document.head || document.getElementsByTagName('head')[0];
-    var newStyle = document.createElement('style');
-
-    newStyle.type = 'text/css';
-    if(newStyle.styleSheet){
-      newStyle.styleSheet.cssText = data;
-    }else{
-      newStyle.appendChild(document.createTextNode(data));
-    };
-
-    head.appendChild(newStyle);
-    return newStyle;
-  };
-
-  // @param {integer} length
-  // @return {string}
   var randomString = function(length){
-    if(length === undefined){
-      length = 10;
-    };
     var text = "",
         possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz123456789";
-    for( var i=0; i < length; i++ ){
+    for(var i=0; i < length; i++){
       text += possible.charAt(Math.floor(Math.random() * possible.length));
     };
     return text;
   };
 
-  var pseudoClassRegex = new RegExp('(:after|:before|:hover|:active|:focus|' +
-        ':checked|:valid|:invalid)', 'gi');
+  var regex = {
+    bufferAttr: new RegExp(':not\\(\\[' + BUFFER_ATTR + '\\*="([^"]+)"\\]\\)'),
+    pseudoClass: new RegExp('(::after|::before|:hover|:active|:focus|' +
+        ':checked|:valid|:invalid)', 'gi')
+  };
 })();

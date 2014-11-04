@@ -5,10 +5,10 @@ x-foo em { font-weight: bold; }
 
 x-foo.talk em { color: #428bca; }
 
-em:hover:after { content: "something"; color: blue; }
+p-cheese p, em:hover:after, x-cheese p { content: "something"; color: blue; }
 b { color: green; }
 
-x-foo::shadow em { text-decoration: underline; }
+x-foo[shadow] em { text-decoration: underline; }
 x-foo.talk::shadow em {border-top: 3px solid #428bca; }
 
 @media (max-width: 991px) {
