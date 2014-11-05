@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="../../dist/bind.polyfill.js"></script>
+  <script src="../../dist/mutationObserver.polyfill.js"></script>
+  <script src="../../dist/matches.polyfill.js"></script>
+  <script src="../../src/shadowStyles.js"></script>
+  <link rel="stylesheet" href="main.css">
+  <style>
+    @import "sample1.css";
+    @media all {
+      .example p { color: red; }
+    }
+    .example p { color: red; }
+    .example p:after {
+      content: "(Not in shadow)";
+      color: red;
+    }
+    x-foo { color: #070; }
+    x-foo[shadow] p:after {
+      content: "(Is in shadow)";
+      color: #090;
+    }
+  </style>
+  <link rel="stylesheet" href="sample1.css">
+  <script>
+    document.shadowStyles('x-foo');
+  </script>
+</head>
+<body>
+  <p>See red 'something' on failure, green on success.</p>
+  <div class="example">
+    <x-foo class="talk">
+      <p>something</p>
+    </x-foo>
+  </div>
+</body>
+</html>

@@ -89,8 +89,8 @@
                 negateId = negateId[1];
               }else{
                 negateId = randomString(UNIQUE_ID_LENGTH);
-                selector = selectors[selectorIndex] = 
-                  insertBufferAttr(selector, negateId);
+                selector = insertBufferAttr(selector, negateId);
+                selectors[selectorIndex] = selector;
                 var ruleBody = rule.cssText.substr(rule.selectorText.length);
                 sheet.insertRule(selectors.join(', ') + ruleBody, ruleIndex + 1);
                 sheet.deleteRule(ruleIndex);
@@ -160,8 +160,7 @@
     var colonPos = selector.lastIndexOf(':');
     var lastSpace = selector.lastIndexOf(' ');
     var bufferAttr = ':not([' + BUFFER_ATTR + '*="' + selectorId + '"])';
-    if(colonPos === -1 || 
-        (lastSpace > -1 && colonPos > lastSpace)){
+    if(colonPos === -1){
       // No pseudo-class, place at end
       return selector + bufferAttr;
     }else{

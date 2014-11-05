@@ -5,6 +5,4 @@ node_js:
 
 before_script:
    - npm install -g casperjs
-   - phantomjs --version; casperjs --version
 
-script: casperjs test test/main.js

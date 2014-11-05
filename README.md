@@ -6,7 +6,12 @@ WebComponents bring Shadow DOM with isolated CSS to some browsers.
 This script simulates CSS isolation for all modern browsers (IE9+, Firefox...).
 
 ## Installation
-...
+Coming soon, bower.
+
+Manually add tag:
+```html
+<script src="build/shadowStyles.min.js"></script>
+```
 
 ### document.shadowStyles(...)
 Pass one argument: array, string, or element.
@@ -42,3 +47,29 @@ small changes as needed.
 ## Todo
 
 * observe ancestors (skip siblings) for rule match changes
+
+## Build
+
+Build file is `build/shadowStyles.min.js`. From cloned repository:
+
+```bash
+# Install Grunt
+$ npm install -g grunt-cli
+# Run default operation
+$ grunt
+```
+
+## Run Tests
+
+From cloned repository:
+
+```bash
+# Install CasperJS
+$ npm install -g casperjs
+# Run Tests
+$ npm test
+```
+
+## License
+
+MIT

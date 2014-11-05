@@ -18,9 +18,14 @@ casper.on("page.error", function(msg, trace) {
   errors.push(msg);
 });
 
-function createTest(name, mockupFile, handler){
+// Simplify creating a test with a mockup page
+// @param {string} name - Provide title for test
+// @param {string} mockupFile - Path to mockup HTML file
+// @param {integer} count - Number of assertions in test
+// @param {function} handler - executed in same context, one argument: test
+function createTest(name, mockupFile, count, handler){
   mockupFile = 'file:///' + pwd + '/' + mockupFile;
-  casper.test.begin(name, 1, function(test){
+  casper.test.begin(name, count, function(test){
     errors = [];
     casper.start(mockupFile).then(function(){
       handler.call(this, test);
