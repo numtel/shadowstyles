@@ -12,7 +12,9 @@
   var documentReady = false;
 
   // Main public method
-  // @param {string} nodeName - Element type to isolate styles of child DOM
+  // @param {string|element|array} nodeName - String: selector to match root
+  //                                          Element: element object as root
+  //                                          Array: combination of both
   document.shadowStyles = function(nodeName){
     shadowNodes.push(nodeName);
     addShadowNodes();
@@ -124,8 +126,18 @@
   };
 
   var findChildren = function(selector) {
-    var roots = document.querySelectorAll(selector);
+    var roots = [];
     var children = [];
+    if(typeof selector === 'string'){
+      roots = document.querySelectorAll(selector);
+    }else if(selector instanceof Array){
+      selector.forEach(function(cur){
+        children = children.concat(findChildren(cur));
+      });
+    }else{
+      // Selector is element
+      roots = [selector];
+    };
     Array.prototype.forEach.call(roots, function(rootEl){
       observer.observe(rootEl, {attributes: true, childList: true});
       rootEl.setAttribute(SHADOW_ATTR, '');

@@ -8,12 +8,11 @@ This script simulates CSS isolation for all modern browsers (IE9+, Firefox...).
 ## Installation
 ...
 
-## How it works
-
-1. Search for child DOM of elements to isolate.
-2. Find which rules apply to those elements and add a `:not(buffer-attr*="uniqueId")`
-    pseudo-class with a unique ID to each rule. Shadowed elements gain the buffer
-    attribute containing the unique ID of each negated rule.
+### document.shadowStyles(...)
+Pass one argument: array, string, or element.
+String provides a selector to match new shadow root elements.
+Element provides a direct reference to a root element.
+Array can contain a combination of both.
 
 ### Targeting simulated shadows
 
@@ -23,6 +22,13 @@ selector:
 ```css
 shadowed-element[shadow] p { color: blue; }
 ```
+
+## How it works
+
+1. Search for child DOM of elements to isolate.
+2. Find which rules apply to those elements and add a `:not(buffer-attr*="uniqueId")`
+    pseudo-class with a unique ID to each rule. Shadowed elements gain the buffer
+    attribute containing the unique ID of each negated rule.
 
 ### Why not `::shadow`?
 
