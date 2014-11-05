@@ -42,7 +42,7 @@ Originally, the plan of this project was to support styles using the native
 only if all the page's stylesheets were rewritten completely. By only
 using selectors that the browser already supports, the script can skip parsing
 all of your CSS itself and rely on the browser's interpretation, only making
-small changes as needed.
+small changes as needed. The final result is much smoother operation.
 
 ## Todo
 
