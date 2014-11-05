@@ -16,23 +16,52 @@
       content: "(Not in shadow)";
       color: red;
     }
+    .example p:hover {
+      color: red;
+    }
+    .example .test { color: red; }
     x-foo { color: #070; }
     x-foo[shadow] p:after {
       content: "(Is in shadow)";
+      color: #070;
+    }
+    x-foo[shadow] p:hover {
       color: #090;
     }
+    #test p { color: red; }
+    #test[shadow] p { color: #070; }
   </style>
   <link rel="stylesheet" href="sample1.css">
   <script>
-    document.shadowStyles('x-foo');
+    window.addEventListener('DOMContentLoaded', function(){
+      document.shadowStyles([
+        'x-foo',
+        document.getElementById('test')
+      ]);
+    }, true);
+
+    function insertTest(){
+      var test = document.getElementById('test');
+      test.innerHTML += '<p>Hello</p>';
+      return test.children[test.children.length - 1];
+    }
+
+    function attrChangeTest(){
+      var xFooP = document.querySelector('x-foo p');
+      xFooP.setAttribute('class', 'test');
+      return xFooP;
+    }
   </script>
 </head>
 <body>
   <p>See red 'something' on failure, green on success.</p>
+  <button name="insert" onclick="insertTest()">Insert Test</button>
+  <button name="attrChange" onclick="attrChangeTest()">Attribute Change Test</button>
   <div class="example">
     <x-foo class="talk">
       <p>something</p>
     </x-foo>
+    <div id="test"></div>
   </div>
 </body>
 </html>

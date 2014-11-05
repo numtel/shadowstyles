@@ -1,8 +1,19 @@
 language: node_js
 
 node_js:
-   - 0.10
+  - 0.10
 
-before_script:
-   - npm install -g casperjs
+env:
+  global:
+    - secure: uRz8/Lyf9/6oVTH/7jjbrzCEhy+7oUGOpK3KjtdyoKo2DSX1lmjT7CWcGUU9ZLirpLFzo+1sPZaspaW/OCmoLS0Bvdq/plsslqIAQo8Ayzeo9qpGrsoqop8iZczAmyQDU4Ohm9Kwl0GcOEUqp4yQm9rCW02dE1ThIf/0ITDWdJg=
+    - secure: lerRPUPLmxP53JagbDZUMXk3FSqCyErVvxdOEbclPTu1lRvKmxglELm1748StNkIldDHKM8OpjZZaFRFmJlxc3H9mvSjMRoPtUx8sGJLLusbB1rzs9H2nj9nO4HA7itkS+Ce+K1WsqWl4tnrKcKfec4YrMjMxb0nXA8tUjMeXPY=
 
+addons:
+  sauce_connect: true
+
+before_install:
+  - "nohup python -m SimpleHTTPServer &"
+  - "npm install -g grunt-cli"
+
+script:
+  - "grunt nightwatch:saucelabs"

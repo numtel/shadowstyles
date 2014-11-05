@@ -4,22 +4,9 @@
   <script src="../../build/shadowStyles.min.js"></script>
   <link rel="stylesheet" href="main.css">
   <style>
-    @import "sample1.css";
-    @media all {
-      .example p { color: red; }
-    }
     .example p { color: red; }
-    .example p:after {
-      content: "(Not in shadow)";
-      color: red;
-    }
     x-foo { color: #070; }
-    x-foo[shadow] p:after {
-      content: "(Is in shadow)";
-      color: #090;
-    }
   </style>
-  <link rel="stylesheet" href="sample1.css">
   <script>
     document.shadowStyles('x-foo');
   </script>

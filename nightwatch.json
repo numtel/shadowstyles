@@ -1,0 +1,19 @@
+{
+  "selenium": {},
+  "src_folders": ["test/nightwatch"],
+  "output_folder": "reports",
+  "test_settings": {
+    "saucelabs": {
+      "silent": true,
+      "selenium_host": "localhost",
+      "selenium_port": 4445,
+      "custom_commands_path": "helpers",
+      "desiredCapabilities": {
+        "username": "${SAUCE_USERNAME}",
+        "accessKey": "${SAUCE_ACCESS_KEY}",
+        "tunnel-identifier": "${TRAVIS_JOB_NUMBER}",
+        "build": "${TRAVIS_BUILD_NUMBER}"
+      }
+    }
+  }
+}

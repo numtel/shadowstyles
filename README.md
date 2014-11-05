@@ -59,26 +59,24 @@ small changes as needed. The final result is much smoother operation.
 
 * observe ancestors (skip siblings) for rule match changes
 
-## Build
-
-Build file is `build/shadowStyles.min.js`. From cloned repository:
+## Build / Run Tests
 
 ```bash
+# Clone repository to current directory
+$ git clone https://github.com/numtel/shadowstyles.git
+$ cd shadowstyles
 $ npm install
 # Install Grunt Client
 $ npm install -g grunt-cli
-# Run default operation
+
+# Run default operation to build minified file
 $ grunt
-```
 
-## Run Tests
-
-From cloned repository:
-
-```bash
-# Install CasperJS
-$ npm install -g casperjs
-# Run Tests
+# Running tests locally requires Selenium jar in repo
+# http://selenium-release.storage.googleapis.com/index.html
+# For example, 2.44.0:
+$ wget http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar
+# Test using grunt-nightwatch
 $ npm test
 ```
 

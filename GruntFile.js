@@ -1,5 +1,4 @@
 module.exports = function(grunt) {
-
   // Project configuration.
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
@@ -19,13 +18,39 @@ module.exports = function(grunt) {
         ],
         dest: 'build/<%= pkg.name %>.min.js'
       }
+    },
+    nightwatch: {
+      options: {
+        standalone: true,
+        custom_commands_path: 'test/helpers',
+        chrome_driver_path: __dirname + '/chromedriver',
+        download: {},
+        firefox: {
+          desiredCapabilities: {
+            browserName: 'firefox'
+          }
+        },
+        chrome: {
+          desiredCapabilities: {
+            browserName: 'chrome'
+          }
+        }
+      },
+      saucelabs: {
+        standalone: false
+      },
+      local: {
+        jar_path: __dirname + '/selenium-server-standalone-2.44.0.jar'
+      },
+      cli: {
+        standalone: false
+      }
     }
   });
 
-  // Load the plugin that provides the "uglify" task.
   grunt.loadNpmTasks('grunt-contrib-uglify');
+  grunt.loadNpmTasks('grunt-nightwatch');
 
-  // Default task(s).
   grunt.registerTask('default', ['uglify']);
 
 };

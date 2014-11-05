@@ -1,4 +1,4 @@
-// shadow dom css isolation simulator polyfill
+// shadowStyles CSS Isolator
 // MIT License, ben@latenightsketches.com
 (function(){
   "use strict";
@@ -187,7 +187,7 @@
 
   var regex = {
     bufferAttr: new RegExp(':not\\(\\[' + BUFFER_ATTR + '\\*="([^"]+)"\\]\\)'),
-    pseudoClass: new RegExp('(::after|::before|:hover|:active|:focus|' +
-        ':checked|:valid|:invalid)', 'gi')
+    pseudoClass: new RegExp('(:after|:before|::after|::before|:hover|' +
+        ':active|:focus|:checked|:valid|:invalid)', 'gi')
   };
 })();
