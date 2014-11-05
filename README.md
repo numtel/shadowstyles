@@ -19,6 +19,17 @@ String provides a selector to match new shadow root elements.
 Element provides a direct reference to a root element.
 Array can contain a combination of both.
 
+```javascript
+// Example with selector string only
+document.shadowStyles('x-foo');
+
+// Example with array containing both types
+document.shadowStyles([
+  'x-foo', // All x-foo elements will have shadow styled children
+  document.getElementById('something') // Specific element
+]);
+```
+
 ### Targeting simulated shadows
 
 Shadowed elements are given a `shadow` attribute that must be present in the
@@ -53,7 +64,8 @@ small changes as needed. The final result is much smoother operation.
 Build file is `build/shadowStyles.min.js`. From cloned repository:
 
 ```bash
-# Install Grunt
+$ npm install
+# Install Grunt Client
 $ npm install -g grunt-cli
 # Run default operation
 $ grunt

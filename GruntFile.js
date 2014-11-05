@@ -14,7 +14,7 @@ module.exports = function(grunt) {
         src: [
           'dist/bind.polyfill.js', // Required for PhantomJS
           'dist/mutationObserver.polyfill.js', // From x-tags
-          'dist/matches.polyfill.js', // Remove namespaced versions
+          'dist/matches.polyfill.js',
           'src/<%= pkg.name %>.js'
         ],
         dest: 'build/<%= pkg.name %>.min.js'

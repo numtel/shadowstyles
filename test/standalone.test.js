@@ -14,4 +14,8 @@ createTest('stand alone - source', 'test/mockup/standalone.html', 2, function(te
   // Test pseudo-element (and inherently pseudo-class)
   test.assertEquals(pAfterColor, 'rgb(0, 153, 0)',
     '::after psuedo-class should be green (#090)');
+
+  // Test new elements created
+  // Test attributes effecting applied styles
+  // Test parent attribute changes
 });
