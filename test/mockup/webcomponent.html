@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="../../dist/bind.polyfill.js"></script>
+  <script src="../../src/elMatches.js"></script>
+  <script src="../../dist/webcomponents.js"></script>
+  <script src="../../src/shadowStyles.js"></script>
+  <link rel="stylesheet" href="main.css">
+  <style>
+    .example p,
+    body.test .example p,
+    .example p.test,
+    .example p.test em { color: red !important; }
+    x-foo::shadow p { color: #070; }
+    x-foo[shadow] p { color: #070; }
+  </style>
+  <script>
+    var XFooPrototype = Object.create(HTMLElement.prototype);
+    XFooPrototype.createdCallback = function() {
+      var shadow = this.createShadowRoot();
+      shadow.innerHTML = '<p>I am an <em>x-foo</em>!</p>';
+      !document.shadowStyles.nativeSupport && document.shadowStyles(this);
+    };
+
+    var XFoo = document.registerElement('x-foo', {
+      prototype: XFooPrototype
+    });
+    
+    function insertTest(){
+      var shadow = document.querySelector('x-foo').shadowRoot;
+      shadow.innerHTML += '<p>Hello</p>';
+      return shadow.children[shadow.children.length - 1];
+    }
+
+    function attrChangeTest(){
+      var xFooP = document.querySelector('x-foo').shadowRoot
+                          .querySelectorAll('p');
+      Array.prototype.forEach.call(xFooP, function(p){
+        p.setAttribute('class', 'test');
+      });
+    }
+
+    function ancestorAttrChangeTest(){
+      document.body.setAttribute('class', 'test');
+    }
+  </script>
+</head>
+<body>
+  <p id="desc">See red text on failure, green on success.</p>
+  <button name="insert" onclick="insertTest()">Insert Test</button>
+  <button name="attrChange" onclick="attrChangeTest()">Attribute Change Test</button>
+  <button name="ancestorAttrChange" onclick="ancestorAttrChangeTest()">
+    Ancestor Attribute Change Test
+  </button>
+  <div class="example">
+    <x-foo></x-foo>
+  </div>
+</body>
+</html>

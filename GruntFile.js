@@ -12,8 +12,8 @@ module.exports = function(grunt) {
       build: {
         src: [
           'dist/bind.polyfill.js', // Required for PhantomJS
+          'src/elMatches.js', // TODO: must be included before webcomponents.js
           'dist/mutationObserver.polyfill.js', // From x-tags
-          'dist/matches.polyfill.js',
           'src/<%= pkg.name %>.js'
         ],
         dest: 'build/<%= pkg.name %>.min.js'

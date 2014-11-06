@@ -1,5 +1,8 @@
 // shadowStyles CSS Isolator
 // MIT License, ben@latenightsketches.com
+// src/shadowStyles.js
+
+// Main library
 (function(){
   "use strict";
   // A buffer must be made to bridge the elements to negated CSS selectors
@@ -19,6 +22,16 @@
     shadowNodes.push(nodeName);
     addShadowNodes();
   };
+
+  // Helper public constant
+  document.shadowStyles.nativeSupport = (function(){
+    try{
+      document.querySelector('::shadow');
+    }catch(error){
+      return false;
+    };
+    return true;
+  })();
   
   var addShadowNodes = function(){
     if(documentReady){
@@ -32,6 +45,12 @@
 
   window.addEventListener('load', function(){
     documentReady = true;
+    if(!window.unwrap){
+      // Include dummy for when Polymer isn't loaded.
+      window.unwrap = function(obj){
+        return obj;
+      };
+    };
     addShadowNodes();
   }, true);
 
@@ -43,9 +62,9 @@
           mutation.attributeName !== SHADOW_ATTR &&
           mutation.attributeName !== BUFFER_ATTR){
 
-        // Children may have changed rules
+        // Update all children of this shadow
         toUpdate = toUpdate.concat(Array.prototype.slice.call(
-          mutation.target.querySelectorAll('*'), 0));
+          shadowAncestor(mutation.target).querySelectorAll('*'), 0));
 
         if(!mutation.target.hasAttribute(SHADOW_ATTR)){
           // Only worry about target if it's inside the shadow
@@ -54,14 +73,16 @@
       }else if(mutation.type === 'childList'){
         Array.prototype.forEach.call(mutation.addedNodes, function(el){
           if(el.nodeName !== '#text' && !el.getAttribute(BUFFER_ATTR)){
-            // A new child element has appeared!
             observer.observe(el, {attributes: true, childList: true});
             el.setAttribute(BUFFER_ATTR, '');
             toUpdate.push(el);
           };
         });
       };
-      updateShadowCss(toUpdate);
+      // Timeout required!?!
+      setTimeout(function(){
+        updateShadowCss(toUpdate);
+      },100);
     });
   });
 
@@ -86,9 +107,9 @@
           // Match without pseudo classs in the selector
           var selectorToMatch = selector.replace(regex.pseudoClass, '');
           Array.prototype.forEach.call(nodeList, function(child){
-            var attrVal = child.getAttribute(BUFFER_ATTR);
+            var attrVal = child.getAttribute(BUFFER_ATTR) || '';
             try{
-              var isMatch = child.matches && child.matches(selectorToMatch);
+              var isMatch = elMatches.call(unwrap(child), selectorToMatch);
             }catch(err){
               // Invalid selector
               return;
@@ -136,6 +157,14 @@
     };
   };
 
+  var shadowAncestor = function(el){
+    while(el.parentNode){
+      if(window.ShadowRoot && el.parentNode instanceof ShadowRoot) return el.parentNode;
+      if(el.hasAttribute(SHADOW_ATTR)) return el;
+      el = el.parentNode;
+    };
+  };
+
   var findAncestors = function(el){
     var ancestors = [];
     while(el.parentNode){
@@ -162,14 +191,28 @@
       roots = [selector];
     };
     Array.prototype.forEach.call(roots, function(rootEl){
-      observer.observe(rootEl, {attributes: true, childList: true});
+      var shadowRoot = rootEl.shadowRoot || rootEl;
+      observer.observe(shadowRoot, {attributes: true, childList: true});
       rootEl.setAttribute(SHADOW_ATTR, '');
 
       findAncestors(rootEl).forEach(function(ancestor){
-        ancestorObserver.observe(ancestor, {attributes: true});
+        if(ancestor.addEventListener_){
+          // Polymer Shadow DOM blocks mutation events but provides _ suffix
+          // to access original method. For unknown reason, MutationObserver
+          // does not work with these ancestors with Polymer
+          ancestor.addEventListener_('DOMAttrModified', function(event){
+            if(event.target !== unwrap(ancestor) ||
+                event.attrName === BUFFER_ATTR ||
+                event.attrName === SHADOW_ATTR) return;
+            var toUpdate = shadowRoot.querySelectorAll('*');
+            updateShadowCss(toUpdate);
+          }, true);
+        }else{
+          ancestorObserver.observe(ancestor, {attributes: true});
+        };
       });
 
-      var found = rootEl.querySelectorAll('*');
+      var found = shadowRoot.querySelectorAll('*');
       Array.prototype.forEach.call(found, function(child){
         observer.observe(child, {attributes: true, childList: true});
         child.setAttribute(BUFFER_ATTR, '');

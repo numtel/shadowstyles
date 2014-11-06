@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="../../dist/bind.polyfill.js"></script>
+  <script src="../../src/elMatches.js"></script>
   <script src="../../dist/mutationObserver.polyfill.js"></script>
-  <script src="../../dist/matches.polyfill.js"></script>
   <script src="../../src/shadowStyles.js"></script>
   <link rel="stylesheet" href="main.css">
   <style>
@@ -15,16 +17,16 @@
     .example p:hover,
     .example .test,
     .example .test em,
-    body.test x-foo p { color: red; }
+    body.test x-foo p { color: red !important; }
 
     .example p:after {
-      content: "(Not in shadow)";
+      content: " (Not in shadow)";
       color: red;
     }
 
     x-foo { color: #070; }
     x-foo[shadow] p:after {
-      content: "(Is in shadow)";
+      content: " (Is in shadow)";
       color: #070;
     }
     x-foo[shadow] p:hover {
@@ -50,9 +52,10 @@
     }
 
     function attrChangeTest(){
-      var xFooP = document.querySelector('x-foo p');
-      xFooP.setAttribute('class', 'test');
-      return xFooP;
+      var testP = document.querySelectorAll('x-foo p, #test p');
+      Array.prototype.forEach.call(testP, function(p){
+        p.setAttribute('class', 'test');
+      });
     }
 
     function ancestorAttrChangeTest(){
@@ -61,7 +64,7 @@
   </script>
 </head>
 <body>
-  <p id="desc">See red 'something' on failure, green on success.</p>
+  <p id="desc">See red text on failure, green on success.</p>
   <button name="insert" onclick="insertTest()">Insert Test</button>
   <button name="attrChange" onclick="attrChangeTest()">Attribute Change Test</button>
   <button name="ancestorAttrChange" onclick="ancestorAttrChangeTest()">

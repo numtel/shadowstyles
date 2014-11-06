@@ -39,6 +39,20 @@ selector:
 shadowed-element[shadow] p { color: blue; }
 ```
 
+### Detecting native support
+
+When using in conjunction with the Platform.js Shadow DOM polyfill, it can be
+useful to know whether the shadow DOM is emulated. Check the boolean constant:
+
+```javascript
+document.shadowStyles.nativeSupport
+```
+
+**Note:** I'm considering wrapping the polyfilled `createShadowRoot()` to
+automatically isolate the shadow CSS, also allowing `createShadowRoot(false)`
+to skip style isolation. See `test/mockup/webcomponent.html` for implementation
+details.
+
 ## How it works
 
 1. Search for child DOM of elements to isolate.
