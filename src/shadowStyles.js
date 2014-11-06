@@ -38,33 +38,44 @@
   // Watch for changes to shadowed elements
   var observer = new MutationObserver(function(mutations){
     mutations.forEach(function(mutation){
+      var toUpdate = [];
       if(mutation.type === 'attributes' &&
           mutation.attributeName !== SHADOW_ATTR &&
           mutation.attributeName !== BUFFER_ATTR){
-        if(mutation.target.hasAttribute(SHADOW_ATTR)){
-          updateShadowCss(mutation.target.querySelectorAll('*'));
-        }else{
-          updateShadowCss([mutation.target]);
+
+        // Children may have changed rules
+        toUpdate = toUpdate.concat(Array.prototype.slice.call(
+          mutation.target.querySelectorAll('*'), 0));
+
+        if(!mutation.target.hasAttribute(SHADOW_ATTR)){
+          // Only worry about target if it's inside the shadow
+          toUpdate.push(mutation.target);
         };
       }else if(mutation.type === 'childList'){
-        var sorted = [];
         Array.prototype.forEach.call(mutation.addedNodes, function(el){
-          var removed = Array.prototype.indexOf.call(mutation.removedNodes, el);
           if(el.nodeName !== '#text' && !el.getAttribute(BUFFER_ATTR)){
             // A new child element has appeared!
             observer.observe(el, {attributes: true, childList: true});
             el.setAttribute(BUFFER_ATTR, '');
-            sorted.push(el);
+            toUpdate.push(el);
           };
         });
-        if(sorted.length > 0){
-          updateShadowCss(sorted);
-        };
       };
+      updateShadowCss(toUpdate);
+    });
+  });
+
+  // Watch for attribute changes to shadow ancestors
+  var ancestorObserver = new MutationObserver(function(mutations){
+    mutations.forEach(function(mutation){
+      var toUpdate = Array.prototype.slice.call(
+        mutation.target.querySelectorAll('[shadow] *'), 0);
+      updateShadowCss(toUpdate);
     });
   });
 
   var updateShadowCss = function(nodeList){
+    if(!nodeList.length) return;
     Array.prototype.forEach.call(document.styleSheets, function(sheetRoot){
       crawlRules(sheetRoot, function(rule, ruleIndex, sheet){
         var selectors = rule.selectorText.split(',');
@@ -125,7 +136,19 @@
     };
   };
 
-  var findChildren = function(selector) {
+  var findAncestors = function(el){
+    var ancestors = [];
+    while(el.parentNode){
+      ancestors.push(el.parentNode);
+      el = el.parentNode;
+    };
+    return ancestors;
+  };
+
+  // Find children of roots, register with observer
+  // @param {string|element|array} selector
+  // @return {array} Child elements
+  var findChildren = function(selector){
     var roots = [];
     var children = [];
     if(typeof selector === 'string'){
@@ -141,6 +164,11 @@
     Array.prototype.forEach.call(roots, function(rootEl){
       observer.observe(rootEl, {attributes: true, childList: true});
       rootEl.setAttribute(SHADOW_ATTR, '');
+
+      findAncestors(rootEl).forEach(function(ancestor){
+        ancestorObserver.observe(ancestor, {attributes: true});
+      });
+
       var found = rootEl.querySelectorAll('*');
       Array.prototype.forEach.call(found, function(child){
         observer.observe(child, {attributes: true, childList: true});

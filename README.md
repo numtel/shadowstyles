@@ -13,7 +13,7 @@ Manually add tag:
 <script src="build/shadowStyles.min.js"></script>
 ```
 
-### document.shadowStyles(...)
+### document.shadowStyles()
 Pass one argument: array, string, or element.
 String provides a selector to match new shadow root elements.
 Element provides a direct reference to a root element.
@@ -55,10 +55,6 @@ using selectors that the browser already supports, the script can skip parsing
 all of your CSS itself and rely on the browser's interpretation, only making
 small changes as needed. The final result is much smoother operation.
 
-## Todo
-
-* observe ancestors (skip siblings) for rule match changes
-
 ## Build / Run Tests
 
 ```bash
@@ -76,7 +72,11 @@ $ grunt
 # http://selenium-release.storage.googleapis.com/index.html
 # For example, 2.44.0:
 $ wget http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar
-# Test using grunt-nightwatch
+# If not running 2.44.0, update filename in GruntFile.js
+
+# Test using grunt-nightwatch:
+$ grunt nightwatch:local
+# Or use default test command alias:
 $ npm test
 ```
 

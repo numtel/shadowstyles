@@ -11,23 +11,26 @@
     @media all {
       .example p { color: red; }
     }
-    .example p { color: red; }
+    .example p,
+    .example p:hover,
+    .example .test,
+    .example .test em,
+    body.test x-foo p { color: red; }
+
     .example p:after {
       content: "(Not in shadow)";
       color: red;
     }
-    .example p:hover {
-      color: red;
-    }
-    .example .test { color: red; }
+
     x-foo { color: #070; }
     x-foo[shadow] p:after {
       content: "(Is in shadow)";
       color: #070;
     }
     x-foo[shadow] p:hover {
-      color: #090;
+      color: #070;
     }
+
     #test p { color: red; }
     #test[shadow] p { color: #070; }
   </style>
@@ -51,15 +54,22 @@
       xFooP.setAttribute('class', 'test');
       return xFooP;
     }
+
+    function ancestorAttrChangeTest(){
+      document.body.setAttribute('class', 'test');
+    }
   </script>
 </head>
 <body>
-  <p>See red 'something' on failure, green on success.</p>
+  <p id="desc">See red 'something' on failure, green on success.</p>
   <button name="insert" onclick="insertTest()">Insert Test</button>
   <button name="attrChange" onclick="attrChangeTest()">Attribute Change Test</button>
+  <button name="ancestorAttrChange" onclick="ancestorAttrChangeTest()">
+    Ancestor Attribute Change Test
+  </button>
   <div class="example">
     <x-foo class="talk">
-      <p>something</p>
+      <p>something <em>else</em></p>
     </x-foo>
     <div id="test"></div>
   </div>
