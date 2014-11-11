@@ -32,7 +32,7 @@
     };
     return true;
   })();
-  
+
   var addShadowNodes = function(){
     if(documentReady){
       while(shadowNodes.length){
@@ -76,13 +76,15 @@
             observer.observe(el, {attributes: true, childList: true});
             el.setAttribute(BUFFER_ATTR, '');
             toUpdate.push(el);
+            el.addEventListener_ && el.addEventListener_('DOMNodeInserted',
+              function(event){
+                // Deal with MutationOberver timing before node inserted
+                updateShadowCss(toUpdate);
+              }, false);
           };
         });
       };
-      // Timeout required!?!
-      setTimeout(function(){
-        updateShadowCss(toUpdate);
-      },100);
+      updateShadowCss(toUpdate);
     });
   });
 

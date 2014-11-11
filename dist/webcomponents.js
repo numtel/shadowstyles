@@ -1296,7 +1296,7 @@ if (WebComponents.flags.shadow) {
     }
     EventTarget.prototype = {
       addEventListener: function(type, fun, capture) {
-        if (!isValidListener(fun) /*|| isMutationEvent(type)*/) return;
+        if (!isValidListener(fun) || isMutationEvent(type)) return;
         var listener = new Listener(type, fun, capture);
         var listeners = listenersTable.get(this);
         if (!listeners) {

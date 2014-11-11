@@ -24,7 +24,6 @@ module.exports = {
         'New child rule negation')
 
       .click('button[name=attrChange]')
-      .pause(120) // setTimeout is 100
       .assert.attributeEquals('x-foo p', 'class', 'test')
       .assert.cssProperty('x-foo p', 'color', successColor,
         'Element with changed attribute updated')
