@@ -142,6 +142,20 @@
     });
   };
 
+  var elMatches = (function(){
+    var options = [
+      'matches',
+      'msMatchesSelector',
+      'webkitMatchesSelector',
+      'mozMatchesSelector',
+      'oMatchesSelector'];
+    for(var i = 0; i < options.length; i++){
+      if(options[i] in document.documentElement){
+         return document.documentElement[options[i]];
+      };
+    };
+  })();
+
   var crawlRules = function(sheet, ruleHandler){
     if(sheet.cssRules){
       Array.prototype.forEach.call(sheet.cssRules, function(rule, index){
@@ -161,8 +175,11 @@
 
   var shadowAncestor = function(el){
     while(el.parentNode){
-      if(window.ShadowRoot && el.parentNode instanceof ShadowRoot) return el.parentNode;
-      if(el.hasAttribute(SHADOW_ATTR)) return el;
+      if(window.ShadowRoot && el.parentNode instanceof ShadowRoot){
+        return el.parentNode;
+      }else if(el.hasAttribute(SHADOW_ATTR)){
+        return el;
+      };
       el = el.parentNode;
     };
   };
