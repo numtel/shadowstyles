@@ -8,28 +8,52 @@
   <script src="../../src/shadowStyles.js"></script>
   <link rel="stylesheet" href="main.css">
   <style>
+    body { color: #000; }
     .example p,
     body.test .example p,
     .example p.test,
-    .example p.test em { color: red !important; }
-    x-foo::shadow p { color: #070; }
-    x-foo[shadow] p { color: #070; }
+    .example p.test em,
+    x-bar { color: red !important; }
+    x-foo::shadow p { color: #070; display: inline;}
+    x-foo[shadow] p { color: #070; display: inline; }
+    x-foo::shadow .light { color: red !important; }
+    x-foo[shadow] .light { color: red !important; }
+    x-foo .light { color: #070; }
+    x-foo[shadow] x-bar p { color: red !important; }
+    x-bar::shadow p { color: red !important; }
+    x-bar[shadow] p { color: red !important; }
+    x-foo::shadow x-bar::shadow p { color: #070; }
+    x-foo[shadow] x-bar[shadow] p { color: #070; }
   </style>
   <script>
     var XFooPrototype = Object.create(HTMLElement.prototype);
     XFooPrototype.createdCallback = function() {
       var shadow = this.createShadowRoot();
-      shadow.innerHTML = '<p>I am an <em>x-foo</em>!</p>';
+      shadow.innerHTML = '<p>I am an <em>x-foo</em>!</p>' +
+                          '<x-bar></x-bar>' +
+                          '<content></content>';
       !document.shadowStyles.nativeSupport && document.shadowStyles(this);
     };
 
     var XFoo = document.registerElement('x-foo', {
       prototype: XFooPrototype
     });
-    
+
+
+    var XBarPrototype = Object.create(HTMLElement.prototype);
+    XBarPrototype.createdCallback = function() {
+      var shadow = this.createShadowRoot();
+      shadow.innerHTML = '<p>I am an <em>x-bar</em>! <content></content></p>';
+      !document.shadowStyles.nativeSupport && document.shadowStyles(this);
+    };
+
+    var XBar = document.registerElement('x-bar', {
+      prototype: XBarPrototype
+    });
+
     function insertTest(){
       var shadow = document.querySelector('x-foo').shadowRoot;
-      shadow.innerHTML += '<p>Hello</p>';
+      shadow.innerHTML += '<p>Hello </p>';
       return shadow.children[shadow.children.length - 1];
     }
 
@@ -54,7 +78,9 @@
     Ancestor Attribute Change Test
   </button>
   <div class="example">
-    <x-foo></x-foo>
+    <x-foo>
+      <span class="light">Light DOM</span>
+    </x-foo>
   </div>
 </body>
 </html>

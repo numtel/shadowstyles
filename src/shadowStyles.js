@@ -38,7 +38,7 @@
       while(shadowNodes.length){
         var nodeName = shadowNodes.shift();
         var shadowChildren = findChildren(nodeName);
-        updateShadowCss(shadowChildren);
+        negateShadowCssRules(shadowChildren);
       };
     };
   };
@@ -63,64 +63,76 @@
           mutation.attributeName !== BUFFER_ATTR){
 
         // Update all children of this shadow
-        toUpdate = toUpdate.concat(Array.prototype.slice.call(
-          shadowAncestor(mutation.target).querySelectorAll('*'), 0));
-
-        if(!mutation.target.hasAttribute(SHADOW_ATTR)){
-          // Only worry about target if it's inside the shadow
-          toUpdate.push(mutation.target);
-        };
+        toUpdate = toUpdate.concat(findShadowPeers(mutation.target));
       }else if(mutation.type === 'childList'){
         Array.prototype.forEach.call(mutation.addedNodes, function(el){
           if(el.nodeName !== '#text' && !el.getAttribute(BUFFER_ATTR)){
             observer.observe(el, {attributes: true, childList: true});
             el.setAttribute(BUFFER_ATTR, '');
-            toUpdate.push(el);
+            toUpdate = toUpdate.concat(findShadowPeers(el));
             el.addEventListener_ && el.addEventListener_('DOMNodeInserted',
               function(event){
                 // Deal with MutationOberver timing before node inserted
-                updateShadowCss(toUpdate);
+                negateShadowCssRules(toUpdate);
               }, false);
           };
         });
       };
-      updateShadowCss(toUpdate);
+      negateShadowCssRules(arrayUnique(toUpdate));
     });
   });
 
   // Watch for attribute changes to shadow ancestors
+  // Not Used with webcomponents.js shadow DOM polyfill
+  // Mutation event utilized below in findChildren() otherwise
   var ancestorObserver = new MutationObserver(function(mutations){
     mutations.forEach(function(mutation){
       var toUpdate = Array.prototype.slice.call(
         mutation.target.querySelectorAll('[shadow] *'), 0);
-      updateShadowCss(toUpdate);
+      negateShadowCssRules(toUpdate);
     });
   });
 
-  var updateShadowCss = function(nodeList){
+  var negateShadowCssRules = function(nodeList){
     if(!nodeList.length) return;
     Array.prototype.forEach.call(document.styleSheets, function(sheetRoot){
       crawlRules(sheetRoot, function(rule, ruleIndex, sheet){
         var selectors = rule.selectorText.split(',');
         selectors.forEach(function(selector, selectorIndex){
           selector = selector.trim();
-          // Skip selectors that match shadow attribute
-          if(selector.indexOf('[' + SHADOW_ATTR + ']') > -1) return;
           // Match without pseudo classs in the selector
           var selectorToMatch = selector.replace(regex.pseudoClass, '');
           Array.prototype.forEach.call(nodeList, function(child){
             var attrVal = child.getAttribute(BUFFER_ATTR) || '';
-            try{
-              var isMatch = elMatches.call(unwrap(child), selectorToMatch);
-            }catch(err){
-              // Invalid selector
-              return;
+            if(child.shadowRoot){
+              // Recurse into child Shadow DOM
+              negateShadowCssRules(child.shadowRoot.querySelectorAll('*'));
             };
-            if(isMatch){
+            if(elMatchesEx(child, selectorToMatch)){
+              var shadowAttrPos = selector.lastIndexOf('[' + SHADOW_ATTR + ']');
+              var shadowRootEl = shadowAncestor(child);
+              if(shadowAttrPos > -1 && !shadowRootEl.shadowRoot){
+                // Selector has shadow attribute included
+                // and is not part of light DOM
+                if(shadowRootEl.host) shadowRootEl = shadowRootEl.host;
+                var nextSpacePos = selector.indexOf(' ', shadowAttrPos);
+                var shadowSelector = nextSpacePos > -1 ?
+                                      selector.substr(0, nextSpacePos) :
+                                      selector;
+                // Do not negate if closest shadowRoot host
+                if(elMatchesEx(shadowRootEl, shadowSelector)) return;
+              };
+              if(shadowAttrPos === -1 && 
+                  shadowRootEl && shadowRootEl.shadowRoot){
+                // Child is part of Light DOM
+                // Skip rules that don't have shadow attribute
+                return;
+              };
               // Check if unique identifier already exists
               var negateId = selector.match(regex.bufferAttr);
               if(negateId){
-                negateId = negateId[1];
+                negateId = negateId[2] || negateId[3];
+                console.log(selector, "HE", negateId);
               }else{
                 negateId = randomString(UNIQUE_ID_LENGTH);
                 selector = insertBufferAttr(selector, negateId);
@@ -142,6 +154,14 @@
     });
   };
 
+  
+  var arrayUnique = function(a) {
+    return a.reduce(function(p, c) {
+      if (p.indexOf(c) < 0) p.push(c);
+      return p;
+    }, []);
+  };
+
   var elMatches = (function(){
     var options = [
       'matches',
@@ -155,6 +175,17 @@
       };
     };
   })();
+
+  // @return true/false/undefined on invalid selector
+  var elMatchesEx = function(el, selector){
+    try{
+      var isMatch = elMatches.call(unwrap(el), selector);
+    }catch(err){
+      // Invalid selector
+      return;
+    };
+    return isMatch;
+  };
 
   var crawlRules = function(sheet, ruleHandler){
     if(sheet.cssRules){
@@ -173,6 +204,27 @@
     };
   };
 
+  // Given an element in a shadow/light dom, find all peer elements
+  // @param {element} el
+  // @param {boolean} isRoot - el is shadowRoot or shadowRoot host
+  var findShadowPeers = function(el, isRoot){
+    var rootEl = isRoot ? el : shadowAncestor(el);
+    var peers = Array.prototype.slice.call(rootEl.querySelectorAll('*'), 0);
+    if(rootEl.host){
+      // Original element was in shadow DOM
+      // Also include light DOM peers
+      peers = peers.concat(Array.prototype.slice.call(
+                rootEl.host.querySelectorAll('*'), 0));
+    }else if(rootEl.shadowRoot){
+      // Original element was in light DOM
+      // Also include shadow DOM peers
+      peers = peers.concat(Array.prototype.slice.call(
+                rootEl.shadowRoot.querySelectorAll('*'), 0));
+    };
+    return peers;
+  };
+
+  // Return nearest ShadowRoot or [shadow] element
   var shadowAncestor = function(el){
     while(el.parentNode){
       if(window.ShadowRoot && el.parentNode instanceof ShadowRoot){
@@ -184,6 +236,21 @@
     };
   };
 
+  // Return array of ShadowRoot Host or [shadow] element
+  // Called for selector matching so ShadowRoots are not helpful
+  var findShadowAncestors = function(el){
+    var output = [];
+    while (el){
+      el = shadowAncestor(el);
+      if(el){
+        if(el.host) el = el.host; // Break out of ShadowRoot
+        output.push(el);
+      };
+    };
+    return output;
+  };
+
+  // Return all ancestor elements
   var findAncestors = function(el){
     var ancestors = [];
     while(el.parentNode){
@@ -223,15 +290,16 @@
             if(event.target !== unwrap(ancestor) ||
                 event.attrName === BUFFER_ATTR ||
                 event.attrName === SHADOW_ATTR) return;
-            var toUpdate = shadowRoot.querySelectorAll('*');
-            updateShadowCss(toUpdate);
+            var toUpdate = findShadowPeers(shadowRoot, true);
+            negateShadowCssRules(toUpdate);
           }, true);
         }else{
+          // Using without Shadow DOM polyfill
           ancestorObserver.observe(ancestor, {attributes: true});
         };
       });
 
-      var found = shadowRoot.querySelectorAll('*');
+      var found = findShadowPeers(shadowRoot, true);
       Array.prototype.forEach.call(found, function(child){
         observer.observe(child, {attributes: true, childList: true});
         child.setAttribute(BUFFER_ATTR, '');
@@ -276,7 +344,7 @@
   };
 
   var regex = {
-    bufferAttr: new RegExp(':not\\(\\[' + BUFFER_ATTR + '\\*="([^"]+)"\\]\\)'),
+    bufferAttr: new RegExp(':not\\(\\[' + BUFFER_ATTR + '\\*=("([^"]+)"|\'([^\']+)\')\\]\\)'),
     pseudoClass: new RegExp('(:after|:before|::after|::before|:hover|' +
         ':active|:focus|:checked|:valid|:invalid)', 'gi')
   };

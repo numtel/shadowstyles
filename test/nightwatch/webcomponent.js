@@ -20,7 +20,7 @@ module.exports = {
         'Static rule negation')
 
       .click('button[name=insert]')
-      .assert.cssProperty('x-foo p:nth-child(2)', 'color', successColor,
+      .assert.cssProperty('x-foo p:nth-child(4)', 'color', successColor,
         'New child rule negation')
 
       .click('button[name=attrChange]')
