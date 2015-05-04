@@ -6,14 +6,16 @@ WebComponents bring Shadow DOM with isolated CSS to some browsers.
 This script simulates CSS isolation for all modern browsers (IE9+, Firefox...).
 
 ## Installation
-Coming soon, bower.
+```
+npm install shadowstyles
+```
 
-Manually add tag:
+Or downoad the built file and manually add tag:
 ```html
 <script src="build/shadowStyles.min.js"></script>
 ```
 
-### document.shadowStyles()
+## document.shadowStyles()
 Pass one argument: array, string, or element.
 String provides a selector to match new shadow root elements.
 Element provides a direct reference to a root element.
@@ -30,7 +32,7 @@ document.shadowStyles([
 ]);
 ```
 
-### Targeting simulated shadows
+## Targeting simulated shadows
 
 Shadowed elements are given a `shadow` attribute that must be present in the
 selector:
@@ -39,7 +41,7 @@ selector:
 shadowed-element[shadow] p { color: blue; }
 ```
 
-### Detecting native support
+## Detecting native support
 
 When using in conjunction with the Platform.js Shadow DOM polyfill, it can be
 useful to know whether the shadow DOM is emulated. Check the boolean constant:
@@ -69,6 +71,10 @@ using selectors that the browser already supports, the script can skip parsing
 all of your CSS itself and rely on the browser's interpretation, only making
 small changes as needed. The final result is much smoother operation.
 
+## Still to do
+
+* Handle nested shadow DOM correctly
+
 ## Build / Run Tests
 
 ```bash
@@ -84,9 +90,9 @@ $ grunt
 
 # Running tests locally requires Selenium jar in repo
 # http://selenium-release.storage.googleapis.com/index.html
-# For example, 2.44.0:
-$ wget http://selenium-release.storage.googleapis.com/2.44/selenium-server-standalone-2.44.0.jar
-# If not running 2.44.0, update filename in GruntFile.js
+# For example, 2.45.0:
+$ wget http://selenium-release.storage.googleapis.com/2.45/selenium-server-standalone-2.45.0.jar
+# If not running 2.45.0, update filename in GruntFile.js
 
 # Test using grunt-nightwatch:
 $ grunt nightwatch:local

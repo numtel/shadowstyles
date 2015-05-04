@@ -39,7 +39,7 @@ module.exports = function(grunt) {
         standalone: false
       },
       local: {
-        jar_path: __dirname + '/selenium-server-standalone-2.44.0.jar'
+        jar_path: __dirname + '/selenium-server-standalone-2.45.0.jar'
       },
       cli: {
         standalone: false
