@@ -5,12 +5,12 @@
 // Main library
 (function(){
   "use strict";
-    
+
     // A buffer must be made to bridge the elements to negated CSS selectors
     var BUFFER_ATTR = 'css-negate';
     var SHADOW_ATTR = 'shadow';
     var UNIQUE_ID_LENGTH = 5;
-    /* 
+    /*
       Allowing the consumer to define the
       dependency if they are within the commonJS environment.
       A similar approach could be used for other dependencies
@@ -133,7 +133,7 @@
                   // Do not negate if closest shadowRoot host
                   if(elMatchesEx(shadowRootEl, shadowSelector)) return;
                 };
-                if(shadowAttrPos === -1 && 
+                if(shadowAttrPos === -1 &&
                     shadowRootEl && shadowRootEl.shadowRoot){
                   // Child is part of Light DOM
                   // Skip rules that don't have shadow attribute
@@ -165,7 +165,7 @@
       });
     };
 
-    
+
     var arrayUnique = function(a) {
       return a.reduce(function(p, c) {
         if (p.indexOf(c) < 0) p.push(c);
@@ -359,7 +359,7 @@
       pseudoClass: new RegExp('(:after|:before|::after|::before|:hover|' +
           ':active|:focus|:checked|:valid|:invalid)', 'gi')
     };
-  
+
 
   if (typeof(module) !== 'undefined') {
       // Script included as CommonJS module
