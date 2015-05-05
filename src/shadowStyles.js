@@ -5,12 +5,21 @@
 // Main library
 (function(){
   "use strict";
-
-  function initialize(document, window) {
+    
     // A buffer must be made to bridge the elements to negated CSS selectors
     var BUFFER_ATTR = 'css-negate';
-    var SHADOW_ATTR = 'shadow'
+    var SHADOW_ATTR = 'shadow';
     var UNIQUE_ID_LENGTH = 5;
+    /* 
+      Allowing the consumer to define the
+      dependency if they are within the commonJS environment.
+      A similar approach could be used for other dependencies
+      to encourage modular development.
+      The docs would mention that commonJS users would need `npm install` it into
+      their project if they need to support browsers that
+      don't support `MutationObserve` natively.
+    */
+    var MutationObserver = (typeof(module) !== 'undefined') ? require('mutation-observer') : window.MutationObserver;
 
     // Cache node names to be shadowed while waiting for window.onload
     var shadowNodes = [];
@@ -20,13 +29,13 @@
     // @param {string|element|array} nodeName - String: selector to match root
     //                                          Element: element object as root
     //                                          Array: combination of both
-    document.shadowStyles = function(nodeName){
+    var shadowStyles = function(nodeName){
       shadowNodes.push(nodeName);
       addShadowNodes();
     };
 
     // Helper public constant
-    document.shadowStyles.nativeSupport = (function(){
+    shadowStyles.nativeSupport = (function(){
       try{
         document.querySelector('::shadow');
       }catch(error){
@@ -134,7 +143,7 @@
                 var negateId = selector.match(regex.bufferAttr);
                 if(negateId){
                   negateId = negateId[2] || negateId[3];
-                  console.log(selector, "HE", negateId);
+                  // console.log(selector, "HE", negateId);
                 }else{
                   negateId = randomString(UNIQUE_ID_LENGTH);
                   selector = insertBufferAttr(selector, negateId);
@@ -350,13 +359,15 @@
       pseudoClass: new RegExp('(:after|:before|::after|::before|:hover|' +
           ':active|:focus|:checked|:valid|:invalid)', 'gi')
     };
-  };
+  
 
-  if(typeof document === 'object') {
-    // Script running in browser
-    initialize(document, window);
-  } else if(typeof module === 'object') {
-    // Script included as CommonJS module
-    module.exports = initialize;
-  }
+  if (typeof(module) !== 'undefined') {
+      // Script included as CommonJS module
+      // just exposing the main method that does the heavy lifting.
+      module.exports = shadowStyles;
+    } else {
+      // Script running in browser
+      // creating a pointer to the main method.
+      document.shadowStyles = shadowStyles;
+    }
 })();
