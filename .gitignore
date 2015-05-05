@@ -6,3 +6,4 @@ selenium*.jar
 chromedriver
 selenium-debug.log
 nohup.out
+build
