@@ -1,5 +1,5 @@
 {
-  "name": "shadowStyles",
+  "name": "shadowstyles",
   "version": "0.0.2",
   "description": "Isolate CSS similar to Shadow DOM",
   "main": "build/shadowStyles.min.js",

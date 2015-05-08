@@ -13,9 +13,9 @@ module.exports = function(grunt) {
         src: [
           'dist/bind.polyfill.js', // Required for PhantomJS
           'dist/mutationObserver.polyfill.js', // From x-tags
-          'src/<%= pkg.name %>.js'
+          'src/shadowStyles.js'
         ],
-        dest: 'build/<%= pkg.name %>.min.js'
+        dest: 'build/shadowStyles.min.js'
       }
     },
     nightwatch: {
