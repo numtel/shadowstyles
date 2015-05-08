@@ -6,8 +6,9 @@ WebComponents bring Shadow DOM with isolated CSS to some browsers.
 This script simulates CSS isolation for all modern browsers (IE9+, Firefox...).
 
 ## Installation
+CommonJS applications may need to include the `mutation-observer` polyfill NPM package as well if they need to support browsers that don't suppport `MutationObserver` natively:
 ```
-npm install shadowstyles
+npm install mutation-observer shadowstyles
 ```
 
 Or downoad the built file and manually add tag:

@@ -10,16 +10,11 @@
     var BUFFER_ATTR = 'css-negate';
     var SHADOW_ATTR = 'shadow';
     var UNIQUE_ID_LENGTH = 5;
-    /*
-      Allowing the consumer to define the
-      dependency if they are within the commonJS environment.
-      A similar approach could be used for other dependencies
-      to encourage modular development.
-      The docs would mention that commonJS users would need `npm install` it into
-      their project if they need to support browsers that
-      don't support `MutationObserve` natively.
-    */
-    var MutationObserver = (typeof(module) !== 'undefined') ? require('mutation-observer') : window.MutationObserver;
+
+    // Allowing the consumer to define the
+    // dependency if they are within the commonJS environment.
+    var MutationObserver = (typeof(module) !== 'undefined') ?
+      require('mutation-observer') : window.MutationObserver;
 
     // Cache node names to be shadowed while waiting for window.onload
     var shadowNodes = [];
